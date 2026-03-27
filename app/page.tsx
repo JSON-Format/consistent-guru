@@ -1,11 +1,33 @@
 "use client";
-
+import { createSupabaseBrowserClient } from "../app/lib/client";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
 
 const Landing = () => {
   const router = useRouter();
+  const supabase = createSupabaseBrowserClient();
+//   const handleGuruClick = async () => {
+
+//   const { data } = await supabase.auth.getUser();
+
+//   if (data.user) {
+//     router.push("/callback"); 
+//   } else {
+//     router.push("/login");
+//   }
+
+// };
+const handleGuruClick = async () => {
+  const { data } = await supabase.auth.getSession();
+  const user = data.session?.user;
+
+  if (user) {
+    router.push("/callback"); // ✅ correct flow
+  } else {
+    router.push("/login");
+  }
+};
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 selection:bg-primary/30">
@@ -32,7 +54,8 @@ const Landing = () => {
 
         {/* Guru circle button */}
         <motion.button
-          onClick={() => router.push("/tracker")}
+          // onClick={() => router.push("/tracker")}
+          onClick={handleGuruClick}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className="relative z-10 flex h-64 w-64 items-center justify-center overflow-hidden rounded-full border-2 border-primary/30 bg-card transition-colors hover:border-primary/60 md:h-80 md:w-80"

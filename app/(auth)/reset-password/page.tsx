@@ -1,9 +1,11 @@
 "use client";
-
+import { createSupabaseBrowserClient } from "../../lib/client";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Lock, Eye, EyeOff, Link } from "lucide-react";
+import { Lock, Eye, EyeOff } from "lucide-react";
 import Links from "next/link";
+import toast from "react-hot-toast";
 type Particle = {
   top: number;
   left: number;
@@ -18,6 +20,9 @@ type FormData = {
 
 export default function ResetPasswordPage() {
 
+  const supabase = createSupabaseBrowserClient();
+const router = useRouter();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -31,9 +36,38 @@ export default function ResetPasswordPage() {
 
   const password = watch("password");
 
-  const onSubmit = (data: FormData) => {
-    console.log(data);
+  const onSubmit = async (data: FormData) => {
+
+  const { error } = await supabase.auth.updateUser({
+    password: data.password,
+  });
+
+  if (error) {
+   toast.error(error.message);
+    return;
+  }
+
+toast.success("Password updated successfully!");
+
+  router.push("/login");
+
+};
+useEffect(() => {
+
+  const checkSession = async () => {
+
+    const { data } = await supabase.auth.getSession();
+
+    if (!data.session) {
+      alert("Reset link expired or invalid");
+      router.push("/forget-password");
+    }
+
   };
+
+  checkSession();
+
+}, []);
 
   useEffect(() => {
     const generated = Array.from({ length: 20 }).map(() => ({

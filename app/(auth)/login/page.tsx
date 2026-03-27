@@ -1,9 +1,11 @@
 "use client";
-
+import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "../../lib/client";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Mail, Lock, Eye, EyeOff, Github } from "lucide-react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 type Particle = {
   top: number;
   left: number;
@@ -17,6 +19,9 @@ type FormData = {
 };
 
 export default function LoginPage() {
+const [loginLoading, setLoginLoading] = useState(false);
+  const router = useRouter();
+const supabase = createSupabaseBrowserClient();
 
   const [showPassword, setShowPassword] = useState(false);
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -27,9 +32,41 @@ export default function LoginPage() {
     formState: { errors }
   } = useForm<FormData>();
 
-  const onSubmit = (data: FormData) => {
-    console.log(data);
-  };
+ const onSubmit = async (data: FormData) => {
+ if (loginLoading) return;
+  setLoginLoading(true);
+  const { email, password } = data;
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    toast.error(error.message);
+    return;
+  }
+
+   toast.success("Login successful 🎉");
+
+  // router.push("/habit");
+  const { data: userData } = await supabase.auth.getUser();
+const user = userData.user;
+
+if (!user) return;
+
+// 🔥 check habits
+const { data: habits } = await supabase
+  .from("habits")
+  .select("id")
+  .eq("user_id", user.id);
+
+if (habits && habits.length > 0) {
+  router.push("/tracker"); // ✅ has habit
+} else {
+  router.push("/habit"); // ❌ no habit
+}
+};
 
   useEffect(() => {
     const generated = Array.from({ length: 20 }).map(() => ({
@@ -42,6 +79,37 @@ export default function LoginPage() {
     setParticles(generated);
   }, []);
 
+const [loading, setLoading] = useState(false);
+  const handleGoogleLogin = async () => {
+      if (loading) return;
+        setLoading(true);
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/callback`,
+    },
+  });
+
+  if (error) {
+    alert(error.message);
+  }
+
+};
+
+const handleGithubLogin = async () => {
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "github",
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/callback`,
+    },
+  });
+
+  if (error) {
+    alert(error.message);
+  }
+
+};
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background overflow-hidden">
 
@@ -107,6 +175,7 @@ export default function LoginPage() {
             <Mail className="absolute left-3 top-3 text-muted-foreground w-5 h-5 text-primary"/>
 
             <input
+             type="email"
               {...register("email", {
                 required: "Email is required"
               })}
@@ -178,13 +247,14 @@ export default function LoginPage() {
 
           </div>
 
-          <div className="text-right text-sm text-muted-foreground mb-6 hover:text-primary cursor-pointer">
+          <div onClick={() => router.push("/forget-password")} className="text-right text-sm text-muted-foreground mb-6 hover:text-primary cursor-pointer">
             Forgot Password?
           </div>
 
           {/* SIGN IN */}
           <button
-            type="submit"
+             type="submit"
+  disabled={loginLoading}
             className="
             w-full
             py-3
@@ -216,7 +286,10 @@ export default function LoginPage() {
         {/* OAUTH */}
         <div className="flex gap-3">
 
-          <button className="flex-1 border border-border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition  border-green-500">
+          <button
+            onClick={handleGoogleLogin} 
+             disabled={loading}
+          className="flex-1 border border-border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition  border-green-500">
 
             <img
               src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -227,7 +300,9 @@ export default function LoginPage() {
 
           </button>
 
-          <button className="flex-1 border border-border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition  border-green-500">
+          <button 
+          onClick={handleGithubLogin}
+          className="flex-1 border border-border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition  border-green-500">
 
             <Github className="w-5 h-5"/>
 

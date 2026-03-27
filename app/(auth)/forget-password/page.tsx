@@ -1,9 +1,10 @@
 "use client";
-
+import { createSupabaseBrowserClient } from "../../lib/client";
 import { useEffect, useState } from "react";
 import { Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 type FormData = {
   email: string;
@@ -17,6 +18,7 @@ type Particle = {
 };
 
 export default function ForgotPasswordPage() {
+  const supabase = createSupabaseBrowserClient();
 
   const { register, handleSubmit, formState:{errors} } = useForm<FormData>();
 
@@ -25,22 +27,31 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = (data: FormData) => {
+ const onSubmit = async (data: FormData) => {
 
-    console.log("Email:", data.email);
+  setLoading(true);
 
-    setLoading(true);
+  // const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+  //   // redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/callback`
+    
+  // });
 
-    /* simulate API */
-    setTimeout(()=>{
+ await supabase.auth.resetPasswordForEmail(data.email, {
+  redirectTo: "http://localhost:3000/callback?flow=reset",
+});
 
-      setLoading(false);
-      setSent(true);
-      setTimer(30);
+ 
+  setLoading(false);
 
-    },2000);
+  // if (error) {
+  //   alert(error.message);
+  //   return;
+  // }
+    toast.success("Reset link sent to your email 📩");
+  setSent(true);
+  setTimer(30);
 
-  };
+};
 
   /* TIMER */
   useEffect(()=>{

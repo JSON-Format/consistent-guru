@@ -1,9 +1,11 @@
 "use client";
-
+import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "../../lib/client";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { User, Mail, Lock, Eye, EyeOff, Github } from "lucide-react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 type Particle = {
   top: number;
   left: number;
@@ -18,20 +20,43 @@ type FormData = {
 };
 
 export default function RegisterPage() {
-
+const router = useRouter();
+const supabase = createSupabaseBrowserClient();
   const [showPassword, setShowPassword] = useState(false);
   const [particles, setParticles] = useState<Particle[]>([]);
-
+  const [loading, setLoading] = useState(false);
   const {
     register,
     handleSubmit,
     formState: { errors }
   } = useForm<FormData>();
 
-  const onSubmit = (data: FormData) => {
-    console.log(data);
-  };
+ const onSubmit = async (data: FormData) => {
 
+   if (loading) return; // prevent double click
+
+  setLoading(true);
+  const { name, email, password } = data;
+
+  const { error } = await supabase.auth.signUp({
+    email: email,
+    password: password,
+    options: {
+      data: {
+        full_name: name
+      }
+    }
+  });
+
+  if (error) {
+   toast.error(error.message);
+    return;
+  }
+
+ toast.success("Account created! Check your email 📩");
+
+  router.push("/login");
+};
   useEffect(() => {
     const generated = Array.from({ length: 20 }).map(() => ({
       top: Math.random() * 100,
@@ -42,6 +67,37 @@ export default function RegisterPage() {
 
     setParticles(generated);
   }, []);
+
+
+  const handleGoogleLogin = async () => {
+      if (loading) return;
+        setLoading(true);
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/callback`,
+    },
+  });
+
+  if (error) {
+    alert(error.message);
+  }
+
+};
+
+const handleGithubLogin = async () => {
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "github",
+    options: {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/callback`,
+    },
+  });
+
+  if (error) {
+    alert(error.message);
+  }
+};
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background overflow-hidden">
@@ -166,12 +222,13 @@ export default function RegisterPage() {
 
           </div>
 
-          <button
-            type="submit"
-            className="w-full py-3 rounded-lg font-semibold bg-primary text-primary-foreground shadow-[0_0_30px_rgba(0,255,170,0.4)]"
-          >
-            Create Account
-          </button>
+         <button
+  type="submit"
+  disabled={loading}
+  className="w-full py-3 rounded-lg font-semibold bg-primary text-primary-foreground shadow-[0_0_30px_rgba(0,255,170,0.4)] disabled:opacity-50"
+>
+  {loading ? "Creating..." : "Create Account"}
+</button>
 
         </form>
 
@@ -187,7 +244,10 @@ export default function RegisterPage() {
         {/* OAUTH */}
         <div className="flex gap-3">
 
-          <button className="flex-1 border border-border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition  border-green-500 text-white">
+          <button 
+            onClick={handleGoogleLogin} 
+             disabled={loading}
+          className="flex-1 border border-border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition  border-green-500 text-white">
 
             <img
               src="https://www.svgrepo.com/show/475656/google-color.svg"
@@ -198,7 +258,9 @@ export default function RegisterPage() {
 
           </button>
 
-          <button className="flex-1 border border-border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition  border-green-500  text-white">
+          <button 
+            onClick={handleGithubLogin}
+          className="flex-1 border border-border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition  border-green-500  text-white">
 
             <Github className="w-5 h-5  text-white"/>
 
