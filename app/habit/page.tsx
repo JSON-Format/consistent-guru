@@ -200,13 +200,23 @@ habitId = newHabit.id;
 
   const isValidNow = isWithinTimeRange(convertTo24());
 
-if (!isStarted) {
-  setIsStarted(true);
-  // 🔥 KEY LOGIC
-  if (!isValidNow) {
-    router.push("/tracker"); // ❌ only outside time
-  }
+// if (!isStarted) {
+//   setIsStarted(true);
+//   // 🔥 KEY LOGIC
+//   if (!isValidNow) {
+//     router.push("/tracker"); // ❌ only outside time
+//   }
 
+//   return;
+// }
+
+if (!isStarted) {
+
+  if (!isValidNow) {
+    router.push("/tracker"); // ❌ direct redirect
+    return;
+  }
+  setIsStarted(true); // ✅ only valid time la
   return;
 }
 
