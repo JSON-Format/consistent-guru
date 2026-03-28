@@ -223,6 +223,20 @@ const ActivityCard = ({
   onMark: (id: string) => void;
   onDelete: (id: string) => void;
 }) => {
+    const formatTime12 = (time) => {
+  if (!time) return "Not set";
+
+  const [hour, minute] = time.split(":");
+
+  const date = new Date();
+  date.setHours(hour, minute);
+
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
   console.log(activity.habit_logs);
   const done = hasMarkedToday(activity);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -289,8 +303,8 @@ const streak = getSmartStreak(activity);
 
     {/* 🔥 ADD THIS EXACTLY HERE */}
     <p className="text-xs text-gray-400 mt-1">
-      ⏰ {activity.scheduled_time || "Not set"} 
-    </p>
+  ⏰ {formatTime12(activity.scheduled_time)}
+</p>
   </div>
 
   <span className="rounded-full bg-secondary px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">

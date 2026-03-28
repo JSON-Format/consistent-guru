@@ -5,6 +5,11 @@ import { FiClock, FiPlay } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "../lib/client";
 import { useRouter } from "next/navigation";
+import dayjs from "dayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { TimePicker } from "@mui/x-date-pickers/TimePicker";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import OpenModel from "@/app/components/appModel"
 const supabase = createSupabaseBrowserClient();
 
 function isWithinTimeRange(taskTime, range = 1) {
@@ -30,9 +35,12 @@ function isWithinTimeRange(taskTime, range = 1) {
 
 export default function MeditationUI() {
   const router = useRouter();
+  const [isLocked, setIsLocked] = useState(false);
    const [isStarted, setIsStarted] = useState(false);
   const [isActiveTime, setIsActiveTime] = useState(false);
+  const [open, setOpen] = useState(false);
   const [time, setTime] = useState("11:00");
+  const [timeValue, setTimeValue] = useState(dayjs());
   const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
   useEffect(() => {
   const checkAccess = async () => {
@@ -48,16 +56,15 @@ export default function MeditationUI() {
       .maybeSingle();
 
     if (!habit) return;
+    if (habit?.is_locked) {
+  setIsLocked(true); // 🔥 refresh apramum lock
+}
     // 🔥 set correct time from DB
-setTime(habit.scheduled_time);
+const t = dayjs(habit.scheduled_time, "HH:mm");
+setTimeValue(t);
 
     const taskTime = habit.scheduled_time;
 
-    // if (isWithinTimeRange(taskTime)) {
-    //   setIsActiveTime(true); // ✅ show complete button
-    // } else {
-    //   router.push("/tracker"); // ❌ redirect
-    // }
  const today = new Date().toLocaleDateString("en-CA");
 
 // 🔥 check today's log
@@ -131,101 +138,10 @@ setIsActiveTime(true);
     exhale: 1,
   };
 
-//   const handleStart = async () => {
-//   const { data: userData } = await supabase.auth.getUser();
-//   const user = userData.user;
-//   if (!user) return;
 
-//   const today = new Date().toLocaleDateString("en-CA");
-//   const now = new Date().toISOString();
-
-//   // 🔍 check if "Meditating" habit already exists
-//   const { data: existingHabit } = await supabase
-//     .from("habits")
-//     .select("*")
-//     .eq("user_id", user.id)
-//     .eq("name", "Meditating")
-//     .maybeSingle();
-
-//   let habitId;
-
-//   // ✅ 1. IF NOT EXISTS → CREATE HABIT
-//   if (!existingHabit) {
-//     const { data: newHabit } = await supabase
-//       .from("habits")
-//       .insert([
-//         {
-//           user_id: user.id,
-//           name: "Meditating",
-//           scheduled_time: time,
-//           created_at: now,
-//           updated_at: now,
-//         },
-//       ])
-//       .select()
-//       .single();
-
-//     habitId = newHabit.id;
-
-//     // 🔥 create initial log
-//     await supabase.from("habit_logs").insert([
-//       {
-//         habit_id: habitId,
-//         date: today,
-//         is_complete: false,
-//         completed_time: now,
-//       },
-//     ]);
-//   } 
-  
-//   // ✅ 2. IF EXISTS → JUST ADD LOG
-//   else {
-//     habitId = existingHabit.id;
-
-//     // check already marked today
-//     const { data: existingLog } = await supabase
-//       .from("habit_logs")
-//       .select("*")
-//       .eq("habit_id", habitId)
-//       .eq("date", today)
-//       .maybeSingle();
-
-//     // if (!existingLog) {
-//     //   await supabase.from("habit_logs").insert([
-//     //     {
-//     //       habit_id: habitId,
-//     //       date: today,
-//     //       is_complete: true,
-//     //       completed_time: now,
-//     //     },
-//     //   ]);
-//     // }
-
-//     if (!existingLog) {
-//   await supabase.from("habit_logs").insert([
-//     {
-//       habit_id: habitId,
-//       date: today,
-//       is_complete: false, // 🔥 FIX
-//     },
-//   ]);
-// }
-//   }
-
-//   // 🚀 redirect to tracker
-//   if (isActiveTime) {
-//   await supabase
-//     .from("habit_logs")
-//     .update({
-//       is_complete: true,
-//       completed_time: new Date().toISOString(),
-//     })
-//     .eq("habit_id", habitId)
-//     .eq("date", today);
-// }
-
-// router.push("/tracker");
-// };
+const convertTo24 = () => {
+  return timeValue.format("HH:mm");
+};
 
 const handleStart = async () => {
 
@@ -252,7 +168,7 @@ const handleStart = async () => {
         {
           user_id: user.id,
           name: "Meditating",
-          scheduled_time: time,
+          scheduled_time: convertTo24(),
           created_at: now,
           updated_at: now,
         },
@@ -279,7 +195,7 @@ const handleStart = async () => {
   //   return; // ❌ STOP HERE (no redirect)
   // }
 
-  const isValidNow = isWithinTimeRange(time);
+  const isValidNow = isWithinTimeRange(convertTo24());
 
 if (!isStarted) {
   setIsStarted(true);
@@ -393,32 +309,86 @@ if (!isStarted) {
             <FiClock /> Schedule Time
           </p>
 
-          <div className="relative">
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="
-                w-full px-5 py-4 rounded-xl
-                bg-white/5 border border-white/10
-                text-lg outline-none
+          <div className="relative flex justify-center">
+            {/*==============  */}            
+<LocalizationProvider dateAdapter={AdapterDayjs}>
+<TimePicker
+  value={timeValue}
+  onChange={(newValue) => setTimeValue(newValue)}
+  disabled={isLocked} 
+  timeSteps={{ minutes: 1 }}
 
-                focus:shadow-[0_0_20px_rgba(34,197,94,0.6)]
-                transition-all
+  slotProps={{
+    textField: {
+      fullWidth: true,
 
-                appearance-none
-                [&::-webkit-calendar-picker-indicator]:opacity-0
-                [&::-webkit-calendar-picker-indicator]:absolute
-              "
-            />
+      InputProps: {
+        sx: {
+          "& .MuiSvgIcon-root": {
+            color: "#4ade80 !important",
+          },
+        },
+      },
 
-            {/* ONE ICON */}
-            <FiClock className="absolute right-4 top-1/2 -translate-y-1/2 opacity-70 pointer-events-none" />
+      sx: {
+        background: "rgba(255,255,255,0.05)",
+        backdropFilter: "blur(10px)",
+        borderRadius: "14px",
+
+        "& .MuiInputBase-root": {
+          height: "55px",
+          padding: "0 16px",
+        },
+
+        "& .MuiOutlinedInput-root": {
+          "& fieldset": {
+            borderColor: "rgba(74, 222, 128, 0.2)",
+          },
+
+          "&:hover fieldset": {
+            borderColor: "rgba(74, 222, 128, 0.4)",
+          },
+
+          "&.Mui-focused fieldset": {
+            borderColor: "#4ade80 !important",
+            boxShadow: "0 0 10px rgba(74, 222, 128, 0.5)",
+          },
+        },
+
+        "& .MuiPickersSectionList-root": {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+          textAlign: "center",
+        },
+
+        "& .MuiPickersSectionList-root span": {
+          fontSize: "18px",
+          letterSpacing: "1px",
+          fontWeight: 500,
+          color: "#fff !important",
+        },
+      },
+    },
+  }}
+/>
+</LocalizationProvider>
+           
           </div>
         </div>
 
         {/* 🚀 BUTTON */}
-        <button onClick={handleStart} className="
+        <button 
+        // onClick={handleStart}
+    onClick={() => {
+    if (!isStarted) {
+      setOpen(true); // 🔥 modal open
+    } else {
+      handleStart(); // complete
+    }
+  }}
+         className="
           w-full py-4 rounded-full font-medium flex items-center justify-center gap-2
           bg-green-400 text-black text-lg
           shadow-[0_0_25px_rgba(34,197,94,0.4)]
@@ -428,7 +398,67 @@ if (!isStarted) {
         " >
          {isStarted ? "Complete Task" : "Start Journey"}<FiPlay />
         </button>
+<OpenModel
+  open={open}
+  onClose={() => setOpen(false)}
+  title={
+    <div className="text-center w-full">
+      Task Created
+    </div>
+  }
+  maxWidth="xs"
+  actions={
+    <div className="flex w-full gap-3">
+      <button
+        onClick={() => setOpen(false)}
+        className="flex-1 py-2 rounded-lg bg-gray-600 hover:bg-gray-500"
+      >
+        Cancel
+      </button>
 
+      <button
+      onClick={async () => {
+  setOpen(false);
+
+  setIsLocked(true); // 🔥 immediate disable
+
+  await handleStart(); // habit create
+
+  // 🔥 DB lock
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData.user;
+
+  if (user) {
+    await supabase
+      .from("habits")
+      .update({ is_locked: true })
+      .eq("user_id", user.id)
+      .eq("name", "Meditating");
+  }
+}}
+        className="flex-1 py-2 rounded-lg bg-green-400 text-black font-medium hover:scale-105 transition"
+      >
+        Yes Start
+      </button>
+    </div>
+  }
+>
+  {/* 🔥 CONTENT */}
+  <div className="text-center space-y-3">
+    <p className="text-gray-300 text-sm">
+      Your meditation task has been created.
+    </p>
+
+    <p className="text-gray-400 text-sm">
+      Please come at your scheduled time 🕒
+    </p>
+
+    {/* 🔥 TIME SHOW */}
+    <div className="text-green-400 font-semibold text-lg">
+      {timeValue.format("hh:mm A")}
+    </div>
+  </div>
+</OpenModel>
       </div>
     </div>
   );

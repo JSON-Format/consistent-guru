@@ -124,3 +124,105 @@
   background: rgba(82, 202, 125, 0.5);
 }
 
+/* 🔥 STRONG OVERRIDE (IMPORTANT) */
+
+body .MuiDialog-paper {
+  background: #061319 !important;
+  color: white !important;
+}
+
+body .MuiPaper-root {
+  background: #061319 !important;
+  color: white !important;
+}
+
+/* clock background */
+body .MuiClock-root {
+  background: transparent !important;
+}
+
+/* numbers */
+body .MuiClockNumber-root {
+  color: white !important;
+}
+
+/* selected item */
+body .Mui-selected {
+  background-color: #4ade80 !important;
+  color: black !important;
+}
+
+/* clock hand */
+body .MuiClockPointer-root {
+  background-color: #4ade80 !important;
+}
+
+body .MuiClock-pin {
+  background-color: #4ade80 !important;
+}
+
+/* AM PM buttons */
+body .MuiPickersLayout-root button {
+  color: white !important;
+}
+
+/* OK / CANCEL */
+body .MuiButton-root {
+  color: #4ade80 !important;
+}
+/* 🔥 FORCE TEXT COLOR (FINAL FIX) */
+/* 🔥 REMOVE ALL BLUE FOCUS FROM MUI */
+
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #4ade80 !important;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.5) !important;
+}
+
+/* remove blue outline ring */
+.MuiOutlinedInput-root:focus-visible {
+  outline: none !important;
+}
+
+/* remove browser focus */
+.MuiInputBase-root:focus {
+  outline: none !important;
+}
+
+/* extra safety */
+input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+/* 🔥 REMOVE BLUE TEXT SELECTION */
+
+::selection {
+  background: #4ade80;
+  color: black;
+}
+
+::-moz-selection {
+  background: #4ade80;
+  color: black;
+}
+
+/* 🔥 FINAL BLUE BORDER REMOVE FIX */
+
+body .MuiPickersInputBase-root.Mui-focused fieldset {
+  border-color: #4ade80 !important;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.5) !important;
+}
+
+/* 🔥 REMOVE DEFAULT BLUE OUTLINE */
+body .MuiPickersInputBase-root.Mui-focused {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 🔥 EXTRA FORCE (MUI v6 fix) */
+body .Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #4ade80 !important;
+}
+/* remove browser blue ring */
+*:focus {
+  outline: none !important;
+}
