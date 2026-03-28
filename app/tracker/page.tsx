@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { showToast } from "@/app/components/appToast";
 import OpenModel from "@/app/components/appModel"
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import {
@@ -18,8 +19,21 @@ import {
 } from "lucide-react";
 
 import { createSupabaseBrowserClient } from "../lib/client";
-const supabase = createSupabaseBrowserClient();
 import { getActivityLevel } from "../lib/levels";
+
+ type HabitLog = {
+  id: string;
+  date: string;
+  is_complete: boolean;
+  completed_time?: string;
+};
+
+type Activity = {
+  id: string;
+  name: string;
+  scheduled_time?: string;
+  habit_logs: HabitLog[];
+};
 
 /* =========================
    Activity Card
@@ -77,15 +91,15 @@ const getMonthGrid = (date: Date) => {
   return days;
 };
 
-const hasMarkedToday = (activity: any) => {
+const hasMarkedToday = (activity: Activity) => {
   return activity.habit_logs?.some(
-    (l: any) => l.date === getToday() && l.is_complete
+    (l: HabitLog) => l.date === getToday() && l.is_complete
   );
 };
 
 
 // 🔥 MISS COUNT
-const getMissCount = (completedDates) => {
+const getMissCount = (completedDates: string[]) => {
   const set = new Set(completedDates);
 
   let miss = 0;
@@ -106,7 +120,11 @@ const getMissCount = (completedDates) => {
 };
 
 // 🔥 ADVANCED DECAY
-const applyAdvancedDecay = (prevStreak, missCount, currentStreak) => {
+const applyAdvancedDecay = (
+  prevStreak: number,
+  missCount: number,
+  currentStreak: number
+) => {
 
   // 🔥 MASTER CASE
   if (prevStreak >= 7 && prevStreak < 21) {
@@ -137,14 +155,14 @@ const applyAdvancedDecay = (prevStreak, missCount, currentStreak) => {
 
 
 
-const getSmartStreak = (activity) => {
+const getSmartStreak = (activity: Activity) => {
   const completedDates = activity.habit_logs
     .filter((l) => l.is_complete)
     .map((l) => l.date);
 
   const completedSet = new Set(completedDates); // 🔥 fast
 
-  const getDate = (daysAgo) => {
+ const getDate = (daysAgo: number) => {
     const d = new Date();
     d.setDate(d.getDate() - daysAgo);
     return getLocalDate(d);
@@ -197,22 +215,14 @@ const getSmartStreak = (activity) => {
 };
 
 
-const getTodayEntries = (activity: any) => {
+const getTodayEntries = (activity: Activity) => {
   return activity.habit_logs?.filter(
-    (l: any) => l.date === getToday()
+    // (l: any) => l.date === getToday()
+    (l: HabitLog) => l.date === getToday()
   );
 };
 
-type Activity = {
-  id: string;
-  name: string;
-  habit_logs: {
-    id: string;
-    date: string;
-    is_complete: boolean;
-    completed_time?: string;
-  }[];
-};
+
 
 const ActivityCard = ({
   activity,
@@ -223,10 +233,10 @@ const ActivityCard = ({
   onMark: (id: string) => void;
   onDelete: (id: string) => void;
 }) => {
-    const formatTime12 = (time) => {
+    const formatTime12 = (time?: string) => {
   if (!time) return "Not set";
 
-  const [hour, minute] = time.split(":");
+  const [hour, minute] = time.split(":").map(Number);
 
   const date = new Date();
   date.setHours(hour, minute);
@@ -303,7 +313,7 @@ const streak = getSmartStreak(activity);
 
     {/* 🔥 ADD THIS EXACTLY HERE */}
     <p className="text-xs text-gray-400 mt-1">
-  ⏰ {formatTime12(activity.scheduled_time)}
+  ⏰ {formatTime12(activity.scheduled_time ?? "")}
 </p>
   </div>
 
@@ -397,7 +407,7 @@ const streak = getSmartStreak(activity);
       </div>
 
       {/* Today Entries */}
-      {todayEntries.some((e) => e.is_complete) && (
+      {todayEntries?.some((e) => e.is_complete) && (
   <div className="mb-6">
     <div className="mb-2 flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground opacity-70">
       <Clock size={10} />
@@ -487,9 +497,10 @@ const streak = getSmartStreak(activity);
 ========================= */
 
 export default function TrackerPage() {
-  
-const [activities, setActivities] = useState<any[]>([]);
+  const supabase = createSupabaseBrowserClient();
+const [activities, setActivities] = useState<Activity[]>([]);
 const router = useRouter();
+const searchParams = useSearchParams();
 const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -521,7 +532,7 @@ const isWithinTime = (scheduledTime: string) => {
 
 const handleMark = async (habitId: string) => {
 
-   const habit = activities.find((h) => h.id === habitId);
+const habit = activities.find((h: Activity) => h.id === habitId);
 
   // 🔥 TIME CHECK
   if (habit?.scheduled_time && !isWithinTime(habit.scheduled_time)) {
@@ -591,7 +602,7 @@ const today = getToday();
       h.id === habitId
         ? {
             ...h,
-            habit_logs: h.habit_logs.map((log) =>
+            habit_logs: h.habit_logs.map((log: HabitLog) =>
               log.id === existing.id
                 ? { ...log, is_complete: true, completed_time: now }
                 : log
@@ -637,7 +648,7 @@ const today = getToday();
 const { data: logs } = await supabase
   .from("habit_logs")
   .select("*")
-  .eq("habit_id", habitId);
+  .eq("habit_id", habitId) as { data: HabitLog[] };
 
 // 🔥 CALCULATE STREAK
 const completedDates = logs
@@ -650,14 +661,23 @@ const completedDates = logs
 //   habit_logs: logs,
 // });
 const streak = getSmartStreak({
-  habit_logs: logs,
+  id: habitId,
+  name: "",
+  scheduled_time: "",
+  habit_logs: logs || [],
 }) || 0;
 
 // 🔥 GET LEVELS
+type Level = {
+  id: string;
+  days: number;
+};
 const { data: levels } = await supabase
   .from("levels")
   .select("*")
-  .order("days", { ascending: true });
+  .order("days", { ascending: true }) as { data: Level[] };
+
+if (!levels || levels.length === 0) return;
 
 let newLevel = levels[0];
 
@@ -871,13 +891,26 @@ useEffect(() => {
   };
 
   load();
-}, []);
+},[router]);
 
 useEffect(() => {
   if (!loading && activities.length === 0) {
     router.push("/habit");
   }
 }, [activities, loading]);
+
+useEffect(() => {
+  const shouldCelebrate = searchParams.get("celebrate");
+
+  if (shouldCelebrate === "true") {
+    setTimeout(() => {
+      celebrate(); // 🎉 BOOM
+    }, 1000);
+
+    // URL clean (optional)
+    window.history.replaceState({}, "", "/tracker");
+  }
+}, []);
 
   return (
     <motion.div
@@ -928,7 +961,7 @@ useEffect(() => {
         {/* Activity List */}
         <div className="space-y-6">
           <AnimatePresence mode="popLayout">
-            {activities.map((activity) => (
+            {activities.map((activity: Activity) => (
               <ActivityCard
                 // key={activity.id}
                   key={activity.id || activity.name}

@@ -5,14 +5,12 @@ import { FiClock, FiPlay } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { createSupabaseBrowserClient } from "../lib/client";
 import { useRouter } from "next/navigation";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import OpenModel from "@/app/components/appModel"
-const supabase = createSupabaseBrowserClient();
-
-function isWithinTimeRange(taskTime, range = 1) {
+function isWithinTimeRange(taskTime: string, range = 1) {
   if (!taskTime) return false;
 
   const now = new Date();
@@ -34,13 +32,14 @@ function isWithinTimeRange(taskTime, range = 1) {
 }
 
 export default function MeditationUI() {
+    const supabase = createSupabaseBrowserClient();
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
    const [isStarted, setIsStarted] = useState(false);
   const [isActiveTime, setIsActiveTime] = useState(false);
   const [open, setOpen] = useState(false);
   const [time, setTime] = useState("11:00");
-  const [timeValue, setTimeValue] = useState(dayjs());
+const [timeValue, setTimeValue] = useState<Dayjs | null>(dayjs());
   const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
   useEffect(() => {
   const checkAccess = async () => {
@@ -60,7 +59,10 @@ export default function MeditationUI() {
   setIsLocked(true); // 🔥 refresh apramum lock
 }
     // 🔥 set correct time from DB
-const t = dayjs(habit.scheduled_time, "HH:mm");
+const t = habit.scheduled_time
+  ? dayjs(habit.scheduled_time, "HH:mm")
+  : dayjs();
+
 setTimeValue(t);
 
     const taskTime = habit.scheduled_time;
@@ -140,7 +142,7 @@ setIsActiveTime(true);
 
 
 const convertTo24 = () => {
-  return timeValue.format("HH:mm");
+  return timeValue ? timeValue.format("HH:mm") : "00:00";
 };
 
 const handleStart = async () => {
@@ -176,7 +178,8 @@ const handleStart = async () => {
       .select()
       .single();
 
-    habitId = newHabit.id;
+  if (!newHabit) return;
+habitId = newHabit.id;
 
     await supabase.from("habit_logs").insert([
       {
@@ -217,7 +220,8 @@ if (!isStarted) {
     .eq("habit_id", habitId)
     .eq("date", today);
 
-  router.push("/tracker"); // ✅ only now redirect
+  // router.push("/tracker"); // ✅ only now redirect
+  router.push("/tracker?celebrate=true");
 };
 
   
@@ -314,7 +318,7 @@ if (!isStarted) {
 <LocalizationProvider dateAdapter={AdapterDayjs}>
 <TimePicker
   value={timeValue}
-  onChange={(newValue) => setTimeValue(newValue)}
+  onChange={(newValue) => setTimeValue(newValue ?? dayjs())}
   disabled={isLocked} 
   timeSteps={{ minutes: 1 }}
 
@@ -455,7 +459,7 @@ if (!isStarted) {
 
     {/* 🔥 TIME SHOW */}
     <div className="text-green-400 font-semibold text-lg">
-      {timeValue.format("hh:mm A")}
+     {timeValue ? timeValue.format("hh:mm A") : "--:--"}
     </div>
   </div>
 </OpenModel>

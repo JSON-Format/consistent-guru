@@ -19,6 +19,8 @@ type FormData = {
 };
 
 export default function ResetPasswordPage() {
+  
+
 
   const supabase = createSupabaseBrowserClient();
 const router = useRouter();
@@ -38,9 +40,10 @@ const router = useRouter();
 
   const onSubmit = async (data: FormData) => {
 
-  const { error } = await supabase.auth.updateUser({
+  const {  data: updatedUser, error } = await supabase.auth.updateUser({
     password: data.password,
   });
+ 
 
   if (error) {
    toast.error(error.message);
@@ -79,6 +82,7 @@ useEffect(() => {
 
     setParticles(generated);
   }, []);
+
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background overflow-hidden">

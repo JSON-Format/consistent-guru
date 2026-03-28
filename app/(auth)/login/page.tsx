@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Mail, Lock, Eye, EyeOff, Github } from "lucide-react";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { showToast } from "@/app/components/appToast";
 type Particle = {
   top: number;
   left: number;
@@ -43,11 +43,13 @@ const supabase = createSupabaseBrowserClient();
   });
 
   if (error) {
-    toast.error(error.message);
+    showToast.error(error.message);
+     setLoginLoading(false);
     return;
   }
 
-   toast.success("Login successful 🎉");
+   showToast.success("Login successful 🎉");
+   setLoginLoading(false);
 
   // router.push("/habit");
   const { data: userData } = await supabase.auth.getUser();

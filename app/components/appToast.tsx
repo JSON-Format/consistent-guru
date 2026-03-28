@@ -2,19 +2,21 @@
 "use client";
 
 import { Toaster, toast, ToastOptions, ToastPosition } from "react-hot-toast";
-import { useEffect, useState } from "react";
+import {useState } from "react";
 
 /* =========================
    Types & Interfaces
 ========================= */
 
-export interface ToastCustomOptions extends ToastOptions {
-  icon?: React.ReactNode;
+import { ReactNode } from "react";
+
+export type ToastCustomOptions = ToastOptions & {
+  icon?: ReactNode;
   action?: {
     label: string;
     onClick: () => void;
   };
-}
+};
 
 interface ToastStyle {
   background?: string;
@@ -116,14 +118,7 @@ export const AppToaster = ({
   showCloseButton = true,
   className = "",
 }: ToasterProps) => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
+ 
   return (
     <Toaster
       position={position}
@@ -185,10 +180,7 @@ export const showActionToast = {
         color: "#D4F1E6",
         border: "1px solid rgba(82, 202, 125, 0.3)",
       },
-      action: {
-        label: action.label,
-        onClick: action.onClick,
-      },
+     
     }),
 
   error: (msg: string, action: { label: string; onClick: () => void }) => 
@@ -199,24 +191,19 @@ export const showActionToast = {
         color: "#FFD4D4",
         border: "1px solid rgba(239, 68, 68, 0.3)",
       },
-      action: {
-        label: action.label,
-        onClick: action.onClick,
-      },
     }),
 };
 
 /* =========================
    Notification Center
 ========================= */
-
-interface ToasterProps {
-  position?: ToastPosition;
-  showProgress?: boolean;
-  showCloseButton?: boolean;
-  className?: string;
-}
-
+type Notification = {
+  id: string;
+  type: keyof typeof showToast;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+};
 export const useNotificationCenter = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -224,7 +211,7 @@ export const useNotificationCenter = () => {
     type: Notification["type"],
     message: string
   ) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = Math.random().toString(36).substring(2, 9);
     const newNotification = {
       id,
       type,
@@ -236,7 +223,7 @@ export const useNotificationCenter = () => {
     setNotifications(prev => [newNotification, ...prev]);
     
     // Show toast as well
-    showToast[type](message);
+   (showToast[type] as (msg: string) => void)(message);
     
     return id;
   };

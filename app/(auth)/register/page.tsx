@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { User, Mail, Lock, Eye, EyeOff, Github } from "lucide-react";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { showToast } from "@/app/components/appToast";
 type Particle = {
   top: number;
   left: number;
@@ -18,6 +18,7 @@ type FormData = {
   email: string;
   password: string;
 };
+
 
 export default function RegisterPage() {
 const router = useRouter();
@@ -49,13 +50,15 @@ const supabase = createSupabaseBrowserClient();
   });
 
   if (error) {
-   toast.error(error.message);
+  showToast.error(error.message);
+   setLoading(false);
     return;
   }
 
- toast.success("Account created! Check your email 📩");
-
+ showToast.success("Account created! Check your email 📩");
+  setLoading(false);
   router.push("/login");
+
 };
   useEffect(() => {
     const generated = Array.from({ length: 20 }).map(() => ({
@@ -67,8 +70,6 @@ const supabase = createSupabaseBrowserClient();
 
     setParticles(generated);
   }, []);
-
-
   const handleGoogleLogin = async () => {
       if (loading) return;
         setLoading(true);
@@ -79,9 +80,10 @@ const supabase = createSupabaseBrowserClient();
     },
   });
 
-  if (error) {
-    alert(error.message);
-  }
+ if (error) {
+  showToast.error(error.message); 
+  setLoading(false);
+}
 
 };
 
@@ -260,6 +262,7 @@ const handleGithubLogin = async () => {
 
           <button 
             onClick={handleGithubLogin}
+            disabled={loading}
           className="flex-1 border border-border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-secondary transition  border-green-500  text-white">
 
             <Github className="w-5 h-5  text-white"/>
