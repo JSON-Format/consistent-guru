@@ -89,9 +89,15 @@ if (!log) {
       },
     ])
     .select()
-    .single();
+    .maybeSingle();
 
   log = newLog;
+}
+
+// 🔥 already completed → go tracker
+if (log && log.is_complete) {
+  router.replace("/tracker");
+  return;
 }
 
 // 🔥 if already started → restore state
@@ -216,22 +222,34 @@ if (!isStarted) {
     router.push("/tracker"); // ❌ direct redirect
     return;
   }
-  setIsStarted(true); // ✅ only valid time la
+  setIsStarted(true); 
   return;
 }
 
   // 🔥 SECOND CLICK → COMPLETE
-  await supabase
-    .from("habit_logs")
-    .update({
-      is_complete: true,
-      completed_time: now,
-    })
-    .eq("habit_id", habitId)
-    .eq("date", today);
+ // 🔥 GET EXISTING LOG
+const { data: existingLog } = await supabase
+  .from("habit_logs")
+  .select("*")
+  .eq("habit_id", habitId)
+  .eq("date", today)
+  .maybeSingle();
 
-  // router.push("/tracker"); // ✅ only now redirect
+if (!existingLog) return;
+
+// ❌ already completed → stop
+if (existingLog.is_complete) return;
+
+// ✅ update only ONE row
+await supabase
+  .from("habit_logs")
+  .update({
+    is_complete: true,
+    completed_time: now,
+  })
+  .eq("id", existingLog.id);
   router.push("/tracker?celebrate=true");
+  setIsStarted(false); 
 };
 
   
