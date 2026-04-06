@@ -11,6 +11,29 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import OpenModel from "@/app/components/appModel";
+
+
+// function isWithinTimeRange(taskTime: string, range = 1) {
+//   if (!taskTime) return false;
+
+//   const now = new Date();
+
+//   const [hours, minutes] = taskTime.split(":").map(Number);
+
+//   const task = new Date();
+//   task.setHours(hours, minutes, 0, 0);
+
+//   // 🔥 PAST TIME → TOMORROW
+//   if (task < now) {
+//     task.setDate(task.getDate() + 1);
+//   }
+
+//   const before = new Date(task.getTime() - range * 60 * 60 * 1000);
+//   const after = new Date(task.getTime() + range * 60 * 60 * 1000);
+
+//   return now >= before && now <= after;
+// }
+
 function isWithinTimeRange(taskTime: string, range = 1) {
   if (!taskTime) return false;
 
@@ -21,17 +44,11 @@ function isWithinTimeRange(taskTime: string, range = 1) {
   const task = new Date();
   task.setHours(hours, minutes, 0, 0);
 
-  // 🔥 PAST TIME → TOMORROW
-  if (task < now) {
-    task.setDate(task.getDate() + 1);
-  }
-
   const before = new Date(task.getTime() - range * 60 * 60 * 1000);
   const after = new Date(task.getTime() + range * 60 * 60 * 1000);
 
   return now >= before && now <= after;
 }
-
 export default function MeditationUI() {
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
@@ -70,8 +87,8 @@ export default function MeditationUI() {
 
       const taskTime = habit.scheduled_time;
 
-      const today = new Date().toLocaleDateString("en-CA");
-
+      // const today = new Date().toLocaleDateString("en-CA");
+const today = new Date().toISOString().split("T")[0];
       // 🔥 check today's log
       let { data: log } = await supabase
         .from("habit_logs")
@@ -157,7 +174,8 @@ export default function MeditationUI() {
     const user = userData.user;
     if (!user) return;
 
-    const today = new Date().toLocaleDateString("en-CA");
+    // const today = new Date().toLocaleDateString("en-CA");
+    const today = new Date().toISOString().split("T")[0];
     const now = new Date().toISOString();
 
     const { data: existingHabit } = await supabase

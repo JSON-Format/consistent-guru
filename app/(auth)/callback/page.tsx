@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from "react";
@@ -7,33 +8,21 @@ import { useRouter } from "next/navigation";
 export default function CallbackPage() {
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
+  function isWithinTimeRange(taskTime: string, range = 1) {
+  if (!taskTime) return false;
 
-  function isWithinTimeRange({
-    taskTime,
-    range = 1,
-  }: {
-    taskTime: string;
-    range?: number;
-  }) {
-    if (!taskTime) return false;
+  const now = new Date();
 
-    const now = new Date();
+  const [hours, minutes] = taskTime.split(":").map(Number);
 
-    const [hours, minutes] = taskTime.split(":").map(Number);
+  const task = new Date();
+  task.setHours(hours, minutes, 0, 0);
 
-    const task = new Date();
-    task.setHours(hours, minutes, 0, 0);
+  const before = new Date(task.getTime() - range * 60 * 60 * 1000);
+  const after = new Date(task.getTime() + range * 60 * 60 * 1000);
 
-    // 🔥 past → tomorrow
-    if (task < now) {
-      task.setDate(task.getDate() + 1);
-    }
-
-    const before = new Date(task.getTime() - range * 60 * 60 * 1000);
-    const after = new Date(task.getTime() + range * 60 * 60 * 1000);
-
-    return now >= before && now <= after;
-  }
+  return now >= before && now <= after;
+}
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -83,7 +72,7 @@ export default function CallbackPage() {
         }
 
         // 🔥 check any habit is within time
-        const today = new Date().toLocaleDateString("en-CA");
+        const today = new Date().toISOString().split("T")[0];
 
         let hasActiveHabit = false;
 
@@ -144,7 +133,7 @@ export default function CallbackPage() {
       }
 
       // 🔥 check time
-      const today = new Date().toLocaleDateString("en-CA");
+      const today = new Date().toISOString().split("T")[0];
 
       let hasActiveHabit = false;
 
@@ -158,17 +147,13 @@ export default function CallbackPage() {
           .eq("date", today)
           .maybeSingle();
 
-        // ❌ skip completed
-        // 🔥 IF COMPLETED → DIRECT TRACKER
-        if (log && log.is_complete) {
-          router.replace("/tracker");
-          return;
-        }
-        // ✅ allow only valid time
-        if (isWithinTimeRange(h.scheduled_time)) {
-          hasActiveHabit = true;
-          break;
-        }
+      const isCompleted = log?.is_complete;
+const isInTime = isWithinTimeRange(h.scheduled_time);
+
+if (!isCompleted && isInTime) {
+  hasActiveHabit = true;
+  break;
+}
       }
 
       if (hasActiveHabit) {
@@ -256,3 +241,5 @@ export default function CallbackPage() {
     </div>
   );
 }
+
+
