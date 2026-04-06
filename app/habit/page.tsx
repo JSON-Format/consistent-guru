@@ -1,4 +1,5 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { FiClock, FiPlay } from "react-icons/fi";
@@ -9,7 +10,7 @@ import dayjs, { Dayjs } from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import OpenModel from "@/app/components/appModel"
+import OpenModel from "@/app/components/appModel";
 function isWithinTimeRange(taskTime: string, range = 1) {
   if (!taskTime) return false;
 
@@ -17,7 +18,7 @@ function isWithinTimeRange(taskTime: string, range = 1) {
 
   const [hours, minutes] = taskTime.split(":").map(Number);
 
-  let task = new Date();
+  const task = new Date();
   task.setHours(hours, minutes, 0, 0);
 
   // 🔥 PAST TIME → TOMORROW
@@ -32,101 +33,102 @@ function isWithinTimeRange(taskTime: string, range = 1) {
 }
 
 export default function MeditationUI() {
-    const supabase = createSupabaseBrowserClient();
+  const supabase = createSupabaseBrowserClient();
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
-   const [isStarted, setIsStarted] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
   const [isActiveTime, setIsActiveTime] = useState(false);
   const [open, setOpen] = useState(false);
   const [time, setTime] = useState("11:00");
-const [timeValue, setTimeValue] = useState<Dayjs | null>(dayjs());
-  const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
+  const [timeValue, setTimeValue] = useState<Dayjs | null>(dayjs());
+  const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">(
+    "inhale",
+  );
   useEffect(() => {
-  const checkAccess = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
-    if (!user) return;
+    const checkAccess = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) return;
 
-    const { data: habit } = await supabase
-      .from("habits")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("name", "Meditating")
-      .maybeSingle();
+      const { data: habit } = await supabase
+        .from("habits")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("name", "Meditating")
+        .maybeSingle();
 
-    if (!habit) return;
-    if (habit?.is_locked) {
-  setIsLocked(true); // 🔥 refresh apramum lock
-}
-    // 🔥 set correct time from DB
-const t = habit.scheduled_time
-  ? dayjs(habit.scheduled_time, "HH:mm")
-  : dayjs();
+      if (!habit) return;
+      if (habit?.is_locked) {
+        setIsLocked(true); // 🔥 refresh apramum lock
+      }
+      // 🔥 set correct time from DB
+      const t = habit.scheduled_time
+        ? dayjs(habit.scheduled_time, "HH:mm")
+        : dayjs();
 
-setTimeValue(t);
+      setTimeValue(t);
 
-    const taskTime = habit.scheduled_time;
+      const taskTime = habit.scheduled_time;
 
- const today = new Date().toLocaleDateString("en-CA");
+      const today = new Date().toLocaleDateString("en-CA");
 
-// 🔥 check today's log
-let { data: log } = await supabase
-  .from("habit_logs")
-  .select("*")
-  .eq("habit_id", habit.id)
-  .eq("date", today)
-  .maybeSingle();
+      // 🔥 check today's log
+      let { data: log } = await supabase
+        .from("habit_logs")
+        .select("*")
+        .eq("habit_id", habit.id)
+        .eq("date", today)
+        .maybeSingle();
 
-// 🔥 FIX: if no log → create one
-if (!log) {
-  const { data: newLog } = await supabase
-    .from("habit_logs")
-    .insert([
-      {
-        habit_id: habit.id,
-        date: today,
-        is_complete: false,
-      },
-    ])
-    .select()
-    .maybeSingle();
+      // 🔥 FIX: if no log → create one
+      if (!log) {
+        const { data: newLog } = await supabase
+          .from("habit_logs")
+          .insert([
+            {
+              habit_id: habit.id,
+              date: today,
+              is_complete: false,
+            },
+          ])
+          .select()
+          .maybeSingle();
 
-  log = newLog;
-}
+        log = newLog;
+      }
 
-// 🔥 already completed → go tracker
-if (log && log.is_complete) {
-  router.replace("/tracker");
-  return;
-}
+      // 🔥 already completed → go tracker
+      if (log && log.is_complete) {
+        router.replace("/tracker");
+        return;
+      }
 
-// 🔥 if already started → restore state
-if (log && !log.is_complete) {
+      // 🔥 if already started → restore state
+      if (log && !log.is_complete) {
+        // 🔥 ONLY inside time allow
+        if (isWithinTimeRange(taskTime)) {
+          setIsStarted(true);
+          setIsActiveTime(true);
+          return;
+        }
 
-  // 🔥 ONLY inside time allow
-  if (isWithinTimeRange(taskTime)) {
-    setIsStarted(true);
-    setIsActiveTime(true);
-    return;
-  }
+        // ❌ outside time → tracker
+        router.replace("/tracker");
+        return;
+      }
 
-  // ❌ outside time → tracker
-  router.replace("/tracker");
-  return;
-}
+      // 🔥 time check
+      if (!isWithinTimeRange(taskTime)) {
+        router.replace("/tracker");
+        return;
+      }
 
-// 🔥 time check
-if (!isWithinTimeRange(taskTime)) {
-  router.replace("/tracker");
-  return;
-}
+      // ✅ allow habit page
+      setIsActiveTime(true);
+    };
 
-// ✅ allow habit page
-setIsActiveTime(true);
-  };
-
-  checkAccess();
-}, []);
+    checkAccess();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -146,126 +148,122 @@ setIsActiveTime(true);
     exhale: 1,
   };
 
+  const convertTo24 = () => {
+    return timeValue ? timeValue.format("HH:mm") : "00:00";
+  };
 
-const convertTo24 = () => {
-  return timeValue ? timeValue.format("HH:mm") : "00:00";
-};
+  const handleStart = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    if (!user) return;
 
-const handleStart = async () => {
+    const today = new Date().toLocaleDateString("en-CA");
+    const now = new Date().toISOString();
 
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  if (!user) return;
-
-  const today = new Date().toLocaleDateString("en-CA");
-  const now = new Date().toISOString();
-
-  const { data: existingHabit } = await supabase
-    .from("habits")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("name", "Meditating")
-    .maybeSingle();
-
-  let habitId;
-
-  if (!existingHabit) {
-    const { data: newHabit } = await supabase
+    const { data: existingHabit } = await supabase
       .from("habits")
-      .insert([
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("name", "Meditating")
+      .maybeSingle();
+
+    let habitId;
+
+    if (!existingHabit) {
+      const { data: newHabit } = await supabase
+        .from("habits")
+        .insert([
+          {
+            user_id: user.id,
+            name: "Meditating",
+            scheduled_time: convertTo24(),
+            created_at: now,
+            updated_at: now,
+          },
+        ])
+        .select()
+        .single();
+
+      if (!newHabit) return;
+      habitId = newHabit.id;
+
+      await supabase.from("habit_logs").insert([
         {
-          user_id: user.id,
-          name: "Meditating",
-          scheduled_time: convertTo24(),
-          created_at: now,
-          updated_at: now,
+          habit_id: habitId,
+          date: today,
+          is_complete: false,
         },
-      ])
-      .select()
-      .single();
+      ]);
+    } else {
+      habitId = existingHabit.id;
+    }
 
-  if (!newHabit) return;
-habitId = newHabit.id;
+    // 🔥 FIRST CLICK → JUST START
+    // if (!isStarted) {
+    //   setIsStarted(true);
+    //   return; // ❌ STOP HERE (no redirect)
+    // }
 
-    await supabase.from("habit_logs").insert([
-      {
-        habit_id: habitId,
-        date: today,
-        is_complete: false,
-      },
-    ]);
-  } else {
-    habitId = existingHabit.id;
-  }
+    const isValidNow = isWithinTimeRange(convertTo24());
 
-  // 🔥 FIRST CLICK → JUST START
-  // if (!isStarted) {
-  //   setIsStarted(true);
-  //   return; // ❌ STOP HERE (no redirect)
-  // }
+    // if (!isStarted) {
+    //   setIsStarted(true);
+    //   // 🔥 KEY LOGIC
+    //   if (!isValidNow) {
+    //     router.push("/tracker"); // ❌ only outside time
+    //   }
 
-  const isValidNow = isWithinTimeRange(convertTo24());
+    //   return;
+    // }
 
-// if (!isStarted) {
-//   setIsStarted(true);
-//   // 🔥 KEY LOGIC
-//   if (!isValidNow) {
-//     router.push("/tracker"); // ❌ only outside time
-//   }
+    if (!isStarted) {
+      if (!isValidNow) {
+        router.push("/tracker"); // ❌ direct redirect
+        return;
+      }
+      setIsStarted(true);
+      return;
+    }
 
-//   return;
-// }
+    // 🔥 SECOND CLICK → COMPLETE
+    // 🔥 GET EXISTING LOG
+    const { data: existingLog } = await supabase
+      .from("habit_logs")
+      .select("*")
+      .eq("habit_id", habitId)
+      .eq("date", today)
+      .maybeSingle();
 
-if (!isStarted) {
+    if (!existingLog) return;
 
-  if (!isValidNow) {
-    router.push("/tracker"); // ❌ direct redirect
-    return;
-  }
-  setIsStarted(true); 
-  return;
-}
+    // ❌ already completed → stop
+    if (existingLog.is_complete) return;
 
-  // 🔥 SECOND CLICK → COMPLETE
- // 🔥 GET EXISTING LOG
-const { data: existingLog } = await supabase
-  .from("habit_logs")
-  .select("*")
-  .eq("habit_id", habitId)
-  .eq("date", today)
-  .maybeSingle();
+    // ✅ update only ONE row
+    await supabase
+      .from("habit_logs")
+      .update({
+        is_complete: true,
+        completed_time: now,
+      })
+      .eq("id", existingLog.id);
+    router.push("/tracker?celebrate=true");
+    setIsStarted(false);
+  };
 
-if (!existingLog) return;
-
-// ❌ already completed → stop
-if (existingLog.is_complete) return;
-
-// ✅ update only ONE row
-await supabase
-  .from("habit_logs")
-  .update({
-    is_complete: true,
-    completed_time: now,
-  })
-  .eq("id", existingLog.id);
-  router.push("/tracker?celebrate=true");
-  setIsStarted(false); 
-};
-
-  
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#061319] text-white px-4">
-
       {/* 🔥 CARD */}
-      <div className="
+      <div
+        className="
         w-full max-w-sm p-8 rounded-3xl text-center space-y-6
         bg-gradient-to-b from-white/5 to-white/0
         backdrop-blur-xl border border-white/10
         shadow-[0_0_40px_rgba(34,197,94,0.15)]
         hover:shadow-[0_0_80px_rgba(34,197,94,0.35)]
         transition-all duration-500
-      ">
-
+      "
+      >
         {/* 🔥 IMAGE WITH BREATHING + GLOW */}
         <div className="flex justify-center relative">
           <motion.div
@@ -288,7 +286,6 @@ await supabase
               boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" },
             }}
           >
-
             {/* 🌊 RINGS */}
             {[...Array(3)].map((_, i) => (
               <motion.div
@@ -317,8 +314,8 @@ await supabase
                   breathPhase === "inhale"
                     ? -5
                     : breathPhase === "exhale"
-                    ? 5
-                    : 0,
+                      ? 5
+                      : 0,
               }}
               transition={{ duration: 4, ease: "easeInOut" }}
             />
@@ -327,12 +324,8 @@ await supabase
 
         {/* TITLE */}
         <div>
-          <h1 className="text-3xl font-semibold text-green-400">
-            Meditating
-          </h1>
-          <p className="text-sm text-gray-400">
-            Finding inner peace
-          </p>
+          <h1 className="text-3xl font-semibold text-green-400">Meditating</h1>
+          <p className="text-sm text-gray-400">Finding inner peace</p>
         </div>
 
         {/* ⏰ TIME PICKER (SINGLE ICON) */}
@@ -342,155 +335,151 @@ await supabase
           </p>
 
           <div className="relative flex justify-center">
-            {/*==============  */}            
-<LocalizationProvider dateAdapter={AdapterDayjs}>
-<TimePicker
-  value={timeValue}
-  onChange={(newValue) => setTimeValue(newValue ?? dayjs())}
-  disabled={isLocked} 
-  timeSteps={{ minutes: 1 }}
+            {/*==============  */}
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <TimePicker
+                value={timeValue}
+                onChange={(newValue) => setTimeValue(newValue ?? dayjs())}
+                disabled={isLocked}
+                timeSteps={{ minutes: 1 }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
 
-  slotProps={{
-    textField: {
-      fullWidth: true,
+                    InputProps: {
+                      sx: {
+                        "& .MuiSvgIcon-root": {
+                          color: "#4ade80 !important",
+                        },
+                      },
+                    },
 
-      InputProps: {
-        sx: {
-          "& .MuiSvgIcon-root": {
-            color: "#4ade80 !important",
-          },
-        },
-      },
+                    sx: {
+                      background: "rgba(255,255,255,0.05)",
+                      backdropFilter: "blur(10px)",
+                      borderRadius: "14px",
 
-      sx: {
-        background: "rgba(255,255,255,0.05)",
-        backdropFilter: "blur(10px)",
-        borderRadius: "14px",
+                      "& .MuiInputBase-root": {
+                        height: "55px",
+                        padding: "0 16px",
+                      },
 
-        "& .MuiInputBase-root": {
-          height: "55px",
-          padding: "0 16px",
-        },
+                      "& .MuiOutlinedInput-root": {
+                        "& fieldset": {
+                          borderColor: "rgba(74, 222, 128, 0.2)",
+                        },
 
-        "& .MuiOutlinedInput-root": {
-          "& fieldset": {
-            borderColor: "rgba(74, 222, 128, 0.2)",
-          },
+                        "&:hover fieldset": {
+                          borderColor: "rgba(74, 222, 128, 0.4)",
+                        },
 
-          "&:hover fieldset": {
-            borderColor: "rgba(74, 222, 128, 0.4)",
-          },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#4ade80 !important",
+                          boxShadow: "0 0 10px rgba(74, 222, 128, 0.5)",
+                        },
+                      },
 
-          "&.Mui-focused fieldset": {
-            borderColor: "#4ade80 !important",
-            boxShadow: "0 0 10px rgba(74, 222, 128, 0.5)",
-          },
-        },
+                      "& .MuiPickersSectionList-root": {
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        width: "100%",
+                        textAlign: "center",
+                      },
 
-        "& .MuiPickersSectionList-root": {
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
-          textAlign: "center",
-        },
-
-        "& .MuiPickersSectionList-root span": {
-          fontSize: "18px",
-          letterSpacing: "1px",
-          fontWeight: 500,
-          color: "#fff !important",
-        },
-      },
-    },
-  }}
-/>
-</LocalizationProvider>
-           
+                      "& .MuiPickersSectionList-root span": {
+                        fontSize: "18px",
+                        letterSpacing: "1px",
+                        fontWeight: 500,
+                        color: "#fff !important",
+                      },
+                    },
+                  },
+                }}
+              />
+            </LocalizationProvider>
           </div>
         </div>
 
         {/* 🚀 BUTTON */}
-        <button 
-        // onClick={handleStart}
-    onClick={() => {
-    if (!isStarted) {
-      setOpen(true); // 🔥 modal open
-    } else {
-      handleStart(); // complete
-    }
-  }}
-         className="
+        <button
+          // onClick={handleStart}
+          onClick={() => {
+            if (!isStarted) {
+              setOpen(true); // 🔥 modal open
+            } else {
+              handleStart(); // complete
+            }
+          }}
+          className="
           w-full py-4 rounded-full font-medium flex items-center justify-center gap-2
           bg-green-400 text-black text-lg
           shadow-[0_0_25px_rgba(34,197,94,0.4)]
           hover:shadow-[0_0_60px_rgba(34,197,94,0.8)]
           hover:scale-105
           transition-all duration-300
-        " >
-         {isStarted ? "Complete Task" : "Start Journey"}<FiPlay />
+        "
+        >
+          {isStarted ? "Complete Task" : "Start Journey"}
+          <FiPlay />
         </button>
-<OpenModel
-  open={open}
-  onClose={() => setOpen(false)}
-  title={
-    <div className="text-center w-full">
-      Task Created
-    </div>
-  }
-  maxWidth="xs"
-  actions={
-    <div className="flex w-full gap-3">
-      <button
-        onClick={() => setOpen(false)}
-        className="flex-1 py-2 rounded-lg bg-gray-600 hover:bg-gray-500"
-      >
-        Cancel
-      </button>
+        <OpenModel
+          open={open}
+          onClose={() => setOpen(false)}
+          title={<div className="text-center w-full">Task Created</div>}
+          maxWidth="xs"
+          actions={
+            <div className="flex w-full gap-3">
+              <button
+                onClick={() => setOpen(false)}
+                className="flex-1 py-2 rounded-lg bg-gray-600 hover:bg-gray-500"
+              >
+                Cancel
+              </button>
 
-      <button
-      onClick={async () => {
-  setOpen(false);
+              <button
+                onClick={async () => {
+                  setOpen(false);
 
-  setIsLocked(true); // 🔥 immediate disable
+                  setIsLocked(true); // 🔥 immediate disable
 
-  await handleStart(); // habit create
+                  await handleStart(); // habit create
 
-  // 🔥 DB lock
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
+                  // 🔥 DB lock
+                  const { data: userData } = await supabase.auth.getUser();
+                  const user = userData.user;
 
-  if (user) {
-    await supabase
-      .from("habits")
-      .update({ is_locked: true })
-      .eq("user_id", user.id)
-      .eq("name", "Meditating");
-  }
-}}
-        className="flex-1 py-2 rounded-lg bg-green-400 text-black font-medium hover:scale-105 transition"
-      >
-        Yes Start
-      </button>
-    </div>
-  }
->
-  {/* 🔥 CONTENT */}
-  <div className="text-center space-y-3">
-    <p className="text-gray-300 text-sm">
-      Your meditation task has been created.
-    </p>
+                  if (user) {
+                    await supabase
+                      .from("habits")
+                      .update({ is_locked: true })
+                      .eq("user_id", user.id)
+                      .eq("name", "Meditating");
+                  }
+                }}
+                className="flex-1 py-2 rounded-lg bg-green-400 text-black font-medium hover:scale-105 transition"
+              >
+                Yes Start
+              </button>
+            </div>
+          }
+        >
+          {/* 🔥 CONTENT */}
+          <div className="text-center space-y-3">
+            <p className="text-gray-300 text-sm">
+              Your meditation task has been created.
+            </p>
 
-    <p className="text-gray-400 text-sm">
-      Please come at your scheduled time 🕒
-    </p>
+            <p className="text-gray-400 text-sm">
+              Please come at your scheduled time 🕒
+            </p>
 
-    {/* 🔥 TIME SHOW */}
-    <div className="text-green-400 font-semibold text-lg">
-     {timeValue ? timeValue.format("hh:mm A") : "--:--"}
-    </div>
-  </div>
-</OpenModel>
+            {/* 🔥 TIME SHOW */}
+            <div className="text-green-400 font-semibold text-lg">
+              {timeValue ? timeValue.format("hh:mm A") : "--:--"}
+            </div>
+          </div>
+        </OpenModel>
       </div>
     </div>
   );

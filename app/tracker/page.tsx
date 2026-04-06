@@ -1,9 +1,10 @@
 "use client";
+export const dynamic = "force-dynamic";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { showToast } from "@/app/components/appToast";
-import OpenModel from "@/app/components/appModel"
+import OpenModel from "@/app/components/appModel";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -21,7 +22,7 @@ import {
 import { createSupabaseBrowserClient } from "../lib/client";
 import { getActivityLevel } from "../lib/levels";
 
- type HabitLog = {
+type HabitLog = {
   id: string;
   date: string;
   is_complete: boolean;
@@ -41,7 +42,6 @@ type Activity = {
 const getLocalDate = (date = new Date()) => {
   return date.toLocaleDateString("en-CA"); // YYYY-MM-DD
 };
-
 
 const celebrate = () => {
   // center burst
@@ -66,6 +66,27 @@ const celebrate = () => {
     origin: { x: 1 },
   });
 };
+
+function CelebrateHandler() {
+  "use client";
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const shouldCelebrate = searchParams.get("celebrate");
+
+    if (shouldCelebrate === "true") {
+      setTimeout(() => {
+        // 🎉 your existing celebrate function
+        celebrate();
+      }, 1000);
+
+      window.history.replaceState({}, "", "/tracker");
+    }
+  }, [searchParams]);
+
+  return null;
+}
 
 const getToday = () => getLocalDate();
 const getMonthGrid = (date: Date) => {
@@ -93,10 +114,9 @@ const getMonthGrid = (date: Date) => {
 
 const hasMarkedToday = (activity: Activity) => {
   return activity.habit_logs?.some(
-    (l: HabitLog) => l.date === getToday() && l.is_complete
+    (l: HabitLog) => l.date === getToday() && l.is_complete,
   );
 };
-
 
 // 🔥 MISS COUNT
 const getMissCount = (completedDates: string[]) => {
@@ -123,9 +143,8 @@ const getMissCount = (completedDates: string[]) => {
 const applyAdvancedDecay = (
   prevStreak: number,
   missCount: number,
-  currentStreak: number
+  currentStreak: number,
 ) => {
-
   // 🔥 MASTER CASE
   if (prevStreak >= 7 && prevStreak < 21) {
     return 1 + (currentStreak - 1);
@@ -153,8 +172,6 @@ const applyAdvancedDecay = (
   return Math.max(1, base + (currentStreak - 1));
 };
 
-
-
 const getSmartStreak = (activity: Activity) => {
   const completedDates = activity.habit_logs
     .filter((l) => l.is_complete)
@@ -162,7 +179,7 @@ const getSmartStreak = (activity: Activity) => {
 
   const completedSet = new Set(completedDates); // 🔥 fast
 
- const getDate = (daysAgo: number) => {
+  const getDate = (daysAgo: number) => {
     const d = new Date();
     d.setDate(d.getDate() - daysAgo);
     return getLocalDate(d);
@@ -214,15 +231,12 @@ const getSmartStreak = (activity: Activity) => {
   return applyAdvancedDecay(prevStreak, missCount, streak);
 };
 
-
 const getTodayEntries = (activity: Activity) => {
   return activity.habit_logs?.filter(
     // (l: any) => l.date === getToday()
-    (l: HabitLog) => l.date === getToday()
+    (l: HabitLog) => l.date === getToday(),
   );
 };
-
-
 
 const ActivityCard = ({
   activity,
@@ -233,52 +247,50 @@ const ActivityCard = ({
   onMark: (id: string) => void;
   onDelete: (id: string) => void;
 }) => {
-    const formatTime12 = (time?: string) => {
-  if (!time) return "Not set";
+  const formatTime12 = (time?: string) => {
+    if (!time) return "Not set";
 
-  const [hour, minute] = time.split(":").map(Number);
+    const [hour, minute] = time.split(":").map(Number);
 
-  const date = new Date();
-  date.setHours(hour, minute);
+    const date = new Date();
+    date.setHours(hour, minute);
 
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
   console.log(activity.habit_logs);
   const done = hasMarkedToday(activity);
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  const goPrevMonth = () => {
+    setCurrentDate((prev) => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() - 1);
+      return d;
+    });
+  };
 
-const goPrevMonth = () => {
-  setCurrentDate((prev) => {
-    const d = new Date(prev);
-    d.setMonth(d.getMonth() - 1);
-    return d;
-  });
-};
-
-const goNextMonth = () => {
-  setCurrentDate((prev) => {
-    const d = new Date(prev);
-    d.setMonth(d.getMonth() + 1);
-    return d;
-  });
-};
-//   const streak = useMemo(() => {
-//   return getSmartStreak(activity);
-// }, [activity.habit_logs.length]);
-const streak = getSmartStreak(activity);
- const calendarDays = useMemo(() => {
-  return getMonthGrid(currentDate);
-}, [currentDate]);
+  const goNextMonth = () => {
+    setCurrentDate((prev) => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() + 1);
+      return d;
+    });
+  };
+  //   const streak = useMemo(() => {
+  //   return getSmartStreak(activity);
+  // }, [activity.habit_logs.length]);
+  const streak = getSmartStreak(activity);
+  const calendarDays = useMemo(() => {
+    return getMonthGrid(currentDate);
+  }, [currentDate]);
   const todayEntries = getTodayEntries(activity);
   const level = getActivityLevel(streak);
 
   return (
-
     <motion.div
       layout
       initial={{ opacity: 0, y: 30 }}
@@ -303,24 +315,24 @@ const streak = getSmartStreak(activity);
           </span>
         </div> */}
         <div className="flex items-center gap-3">
-  <div>
-    <h2
-      className="text-lg sm:text-xl font-bold text-foreground"
-      style={{ fontFamily: "var(--font-display)" }}
-    >
-      {activity.name}
-    </h2>
+          <div>
+            <h2
+              className="text-lg sm:text-xl font-bold text-foreground"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {activity.name}
+            </h2>
 
-    {/* 🔥 ADD THIS EXACTLY HERE */}
-    <p className="text-xs text-gray-400 mt-1">
-  ⏰ {formatTime12(activity.scheduled_time ?? "")}
-</p>
-  </div>
+            {/* 🔥 ADD THIS EXACTLY HERE */}
+            <p className="text-xs text-gray-400 mt-1">
+              ⏰ {formatTime12(activity.scheduled_time ?? "")}
+            </p>
+          </div>
 
-  <span className="rounded-full bg-secondary px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-    {level.emoji} {level.title}
-  </span>
-</div>
+          <span className="rounded-full bg-secondary px-3 py-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+            {level.emoji} {level.title}
+          </span>
+        </div>
 
         <button
           onClick={() => onDelete(activity.id)}
@@ -336,16 +348,14 @@ const streak = getSmartStreak(activity);
         <div
           className="flex cursor-pointer items-center gap-3"
           onClick={() => {
-  // if (!done) {
-  //   celebrate(); // 🎉 confetti
-  //   onMark(activity.id);
- 
+            // if (!done) {
+            //   celebrate(); // 🎉 confetti
+            //   onMark(activity.id);
 
-  if (!done) {
-    onMark(activity.id);
-  
-  }  
-}}
+            if (!done) {
+              onMark(activity.id);
+            }
+          }}
         >
           {/* <div
             className={`flex h-6 w-6 items-center justify-center rounded border transition-all duration-300 ${
@@ -408,85 +418,89 @@ const streak = getSmartStreak(activity);
 
       {/* Today Entries */}
       {todayEntries?.some((e) => e.is_complete) && (
-  <div className="mb-6">
-    <div className="mb-2 flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground opacity-70">
-      <Clock size={10} />
-      Today
-    </div>
+        <div className="mb-6">
+          <div className="mb-2 flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground opacity-70">
+            <Clock size={10} />
+            Today
+          </div>
 
-    <div className="flex flex-wrap gap-2">
-      {todayEntries
-        .filter((e) => e.is_complete) // 🔥 only completed
-        .map((entry, i) => (
-          <span
-            key={i}
-            className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground"
-          >
-            {entry.completed_time
-              ? new Date(entry.completed_time).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : ""}
-          </span>
-        ))}
-    </div>
-  </div>
-)}
+          <div className="flex flex-wrap gap-2">
+            {todayEntries
+              .filter((e) => e.is_complete) // 🔥 only completed
+              .map((entry, i) => (
+                <span
+                  key={i}
+                  className="rounded-full bg-secondary px-3 py-1 text-xs text-muted-foreground"
+                >
+                  {entry.completed_time
+                    ? new Date(entry.completed_time).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : ""}
+                </span>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* 30 Day Grid */}
       <div className="mt-4">
-      
-  {/* Month Header */}
-<div className="flex items-center justify-between mb-3">
-  <button onClick={goPrevMonth} className="px-3 py-1 bg-secondary rounded">
-    ◀
-  </button>
+        {/* Month Header */}
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={goPrevMonth}
+            className="px-3 py-1 bg-secondary rounded"
+          >
+            ◀
+          </button>
 
-  <h3 className="text-sm text-muted-foreground">
-    {currentDate.toLocaleString("default", {
-      month: "long",
-      year: "numeric",
-    })}
-  </h3>
+          <h3 className="text-sm text-muted-foreground">
+            {currentDate.toLocaleString("default", {
+              month: "long",
+              year: "numeric",
+            })}
+          </h3>
 
-  <button onClick={goNextMonth} className="px-3 py-1 bg-secondary rounded">
-    ▶
-  </button>
-</div>
+          <button
+            onClick={goNextMonth}
+            className="px-3 py-1 bg-secondary rounded"
+          >
+            ▶
+          </button>
+        </div>
 
-{/* Calendar Grid */}
-<AnimatePresence mode="wait">
-  <motion.div
-    key={currentDate.toISOString()}
-    initial={{ opacity: 0, x: 40 }}
-    animate={{ opacity: 1, x: 0 }}
-    exit={{ opacity: 0, x: -40 }}
-    transition={{ duration: 0.25 }}
-    className="grid grid-cols-7 gap-2"
-  >
-    {calendarDays.map((day, index) => {
-  if (!day) return <div key={index} />;
+        {/* Calendar Grid */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentDate.toISOString()}
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.25 }}
+            className="grid grid-cols-7 gap-2"
+          >
+            {calendarDays.map((day, index) => {
+              if (!day) return <div key={index} />;
 
-  const log = activity.habit_logs.find((l) => l.date === day);
+              const log = activity.habit_logs.find((l) => l.date === day);
 
-  return (
-    <div
-      key={day}
-      title={day}
-      className={`h-8 w-full rounded flex items-center justify-center text-[10px] ${
-        log?.is_complete
-          ? "bg-primary text-primary-foreground"
-          : "bg-[hsl(0_0%_100%/0.12)] text-muted-foreground"
-      }${day === getToday() ? "ring-1 ring-primary" : ""}`}
-    >
-      {new Date(day).getDate()}
-    </div>
-  );
-})}
-  </motion.div>
-</AnimatePresence>
-    
+              return (
+                <div
+                  key={day}
+                  title={day}
+                  className={`h-8 w-full rounded flex items-center justify-center text-[10px] ${
+                    log?.is_complete
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-[hsl(0_0%_100%/0.12)] text-muted-foreground"
+                  }${day === getToday() ? "ring-1 ring-primary" : ""}`}
+                >
+                  {new Date(day).getDate()}
+                </div>
+              );
+            })}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </motion.div>
   );
@@ -498,360 +512,346 @@ const streak = getSmartStreak(activity);
 
 export default function TrackerPage() {
   const supabase = createSupabaseBrowserClient();
-const [activities, setActivities] = useState<Activity[]>([]);
-const router = useRouter();
-const searchParams = useSearchParams();
-const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-    const [deleteId, setDeleteId] = useState<string | null>(null);
-const [deleteLoading, setDeleteLoading] = useState(false);
-const handleDelete = (id: string) => {
-  setDeleteId(id);
-};
-const isWithinTime = (scheduledTime: string) => {
-  if (!scheduledTime) return true;
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const handleDelete = (id: string) => {
+    setDeleteId(id);
+  };
+  const isWithinTime = (scheduledTime: string) => {
+    if (!scheduledTime) return true;
 
-  const now = new Date();
+    const now = new Date();
 
-  const [h, m] = scheduledTime.split(":").map(Number);
+    const [h, m] = scheduledTime.split(":").map(Number);
 
-  let task = new Date();
-  task.setHours(h, m, 0, 0);
+    const task = new Date();
+    task.setHours(h, m, 0, 0);
 
-  // 🔥 PAST → TOMORROW
-  if (task < now) {
-    task.setDate(task.getDate() + 1);
-  }
+    // 🔥 PAST → TOMORROW
+    if (task < now) {
+      task.setDate(task.getDate() + 1);
+    }
 
-  const before = new Date(task.getTime() - 60 * 60 * 1000);
-  const after = new Date(task.getTime() + 60 * 60 * 1000);
+    const before = new Date(task.getTime() - 60 * 60 * 1000);
+    const after = new Date(task.getTime() + 60 * 60 * 1000);
 
-  return now >= before && now <= after;
-};
+    return now >= before && now <= after;
+  };
 
-const handleMark = async (habitId: string) => {
+  const handleMark = async (habitId: string) => {
+    const habit = activities.find((h: Activity) => h.id === habitId);
 
-const habit = activities.find((h: Activity) => h.id === habitId);
+    // 🔥 TIME CHECK
+    if (habit?.scheduled_time && !isWithinTime(habit.scheduled_time)) {
+      showToast.error("⏰ You can mark only within your scheduled time!");
+      return;
+    }
 
-  // 🔥 TIME CHECK
-  if (habit?.scheduled_time && !isWithinTime(habit.scheduled_time)) {
-    showToast.error("⏰ You can mark only within your scheduled time!");
-    return;
-  }
+    const today = getToday();
+    const { data: existing } = await supabase
+      .from("habit_logs")
+      .select("*")
+      .eq("habit_id", habitId)
+      .eq("date", today)
+      .maybeSingle();
 
-const today = getToday();
-  const { data: existing } = await supabase
-    .from("habit_logs")
-    .select("*")
-    .eq("habit_id", habitId)
-    .eq("date", today)
-    .maybeSingle();
+    if (existing?.is_complete) {
+      showToast.info("Already done today 😄");
+      return;
+    }
 
-  if (existing?.is_complete) {
-  showToast.info("Already done today 😄");
-  return;
-}
+    const now = new Date().toISOString();
 
-  const now = new Date().toISOString();
+    // ✅ CASE 1: ROW EXISTS → UPDATE (🔥 THIS WAS MISSING)
+    // if (existing) {
+    //   // UI update
+    //   setActivities((prev) =>
+    //     prev.map((h) =>
+    //       h.id === habitId
+    //         ? {
+    //             ...h,
+    //             habit_logs: h.habit_logs.map((log: any) =>
+    //               log.date === today
+    //                 ? {
+    //                     ...log,
+    //                     is_complete: true,
+    //                     completed_time: now,
+    //                   }
+    //                 : log
+    //             ),
+    //           }
+    //         : h
+    //     )
+    //   );
 
-  // ✅ CASE 1: ROW EXISTS → UPDATE (🔥 THIS WAS MISSING)
-  // if (existing) {
-  //   // UI update
-  //   setActivities((prev) =>
-  //     prev.map((h) =>
-  //       h.id === habitId
-  //         ? {
-  //             ...h,
-  //             habit_logs: h.habit_logs.map((log: any) =>
-  //               log.date === today
-  //                 ? {
-  //                     ...log,
-  //                     is_complete: true,
-  //                     completed_time: now,
-  //                   }
-  //                 : log
-  //             ),
-  //           }
-  //         : h
-  //     )
-  //   );
+    //   // DB update
+    //   await supabase
+    //     .from("habit_logs")
+    //     .update({
+    //       is_complete: true,
+    //       completed_time: now,
+    //     })
+    //     .eq("id", existing.id);
+    // }
 
-  //   // DB update
-  //   await supabase
-  //     .from("habit_logs")
-  //     .update({
-  //       is_complete: true,
-  //       completed_time: now,
-  //     })
-  //     .eq("id", existing.id);
-  // }
+    if (existing) {
+      // 🔥 ONLY UPDATE (no duplicate)
+      await supabase
+        .from("habit_logs")
+        .update({
+          is_complete: true,
+          completed_time: now,
+        })
+        .eq("id", existing.id);
 
-  if (existing) {
-  // 🔥 ONLY UPDATE (no duplicate)
-  await supabase
-    .from("habit_logs")
-    .update({
-      is_complete: true,
-      completed_time: now,
-    })
-    .eq("id", existing.id);
+      setActivities((prev) =>
+        prev.map((h) =>
+          h.id === habitId
+            ? {
+                ...h,
+                habit_logs: h.habit_logs.map((log: HabitLog) =>
+                  log.id === existing.id
+                    ? { ...log, is_complete: true, completed_time: now }
+                    : log,
+                ),
+              }
+            : h,
+        ),
+      );
+    }
+    // ✅ CASE 2: NO ROW → INSERT
+    else if (!existing) {
+      setActivities((prev) =>
+        prev.map((h) =>
+          h.id === habitId
+            ? {
+                ...h,
+                habit_logs: [
+                  ...h.habit_logs,
+                  {
+                    id: Math.random().toString(),
+                    date: today,
+                    is_complete: true,
+                    completed_time: now,
+                  },
+                ],
+              }
+            : h,
+        ),
+      );
 
-  setActivities((prev) =>
-    prev.map((h) =>
-      h.id === habitId
-        ? {
-            ...h,
-            habit_logs: h.habit_logs.map((log: HabitLog) =>
-              log.id === existing.id
-                ? { ...log, is_complete: true, completed_time: now }
-                : log
-            ),
-          }
-        : h
-    )
-  );
-}
-  // ✅ CASE 2: NO ROW → INSERT
- else if (!existing) {
-    setActivities((prev) =>
-      prev.map((h) =>
-        h.id === habitId
-          ? {
-              ...h,
-              habit_logs: [
-                ...h.habit_logs,
-                {
-                  id: Math.random().toString(),
-                  date: today,
-                  is_complete: true,
-                  completed_time: now,
-                },
-              ],
-            }
-          : h
-      )
+      await supabase.from("habit_logs").insert([
+        {
+          habit_id: habitId,
+          date: today,
+          is_complete: true,
+          completed_time: now,
+        },
+      ]);
+    }
+
+    // 🔥 GET ALL LOGS
+    const { data: logs } = (await supabase
+      .from("habit_logs")
+      .select("*")
+      .eq("habit_id", habitId)) as { data: HabitLog[] };
+
+    // 🔥 CALCULATE STREAK
+    const completedDates = logs
+      .filter((l) => l.is_complete)
+      .map((l) => l.date)
+      .sort()
+      .reverse();
+
+    // const streak = getSmartStreak({
+    //   habit_logs: logs,
+    // });
+    const streak =
+      getSmartStreak({
+        id: habitId,
+        name: "",
+        scheduled_time: "",
+        habit_logs: logs || [],
+      }) || 0;
+
+    // 🔥 GET LEVELS
+    type Level = {
+      id: string;
+      days: number;
+    };
+    const { data: levels } = (await supabase
+      .from("levels")
+      .select("*")
+      .order("days", { ascending: true })) as { data: Level[] };
+
+    if (!levels || levels.length === 0) return;
+
+    let newLevel = levels[0];
+
+    for (const lvl of levels) {
+      if (streak >= lvl.days) {
+        newLevel = lvl;
+      }
+    }
+
+    // 🔥 UPDATE HABIT LEVEL
+    await supabase
+      .from("habits")
+      .update({ level: newLevel.id })
+      .eq("id", habitId);
+    showToast.success("Completed today ✅");
+    celebrate();
+  };
+
+  // const handleDelete = async (id: string) => {
+  //   // if (!confirm("Delete this activity?")) return;
+
+  //     if (typeof window !== "undefined") {
+  //     if (!window.confirm("Delete this activity?")) return;
+  //   }
+
+  //   // ⚡ remove from UI
+  //   setActivities((prev) => prev.filter((h) => h.id !== id));
+
+  //   // 🧠 if temp id → skip DB
+  //   if (id.length < 20) return; // 🔥 temp id check
+
+  //   // 🔥 DB delete
+  //   const { error } = await supabase
+  //     .from("habits")
+  //     .delete()
+  //     .eq("id", id);
+
+  //   if (error) {
+  //     console.log("DELETE ERROR:", error);
+  //      showToast.error("Delete failed ❌");
+  //     loadHabits();
+  //   }
+  // };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+
+    setDeleteLoading(true);
+
+    // UI remove
+    setActivities((prev) => prev.filter((h) => h.id !== deleteId));
+
+    const { error } = await supabase.from("habits").delete().eq("id", deleteId);
+
+    if (error) {
+      showToast.error("Delete failed ❌");
+      loadHabits(); // rollback
+    } else {
+      showToast.success("Habit deleted 🗑️");
+    }
+
+    setDeleteLoading(false);
+    setDeleteId(null);
+  };
+
+  const handleAdd = async () => {
+    if (!newName.trim()) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    // if (!user) return;
+
+    if (!user) {
+      setLoading(false); // 🔥 important
+      return;
+    }
+
+    const name = newName.trim();
+
+    // 🔥 UI duplicate check
+    const alreadyExists = activities.some(
+      (h) => h.name.toLowerCase() === name.toLowerCase(),
     );
 
+    if (alreadyExists) {
+      showToast.error("Habit already exists ⚠️");
+      return;
+    }
+
+    setNewName("");
+    setShowAdd(false);
+
+    // 🔥 DB INSERT
+    const { data, error } = await supabase
+      .from("habits")
+      .insert([
+        {
+          user_id: user.id,
+          name,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single();
+
+    // 🔥 DB duplicate safety
+    if (error) {
+      if (error.code === "23505") {
+        showToast.error("Habit already exists ⚠️");
+      } else {
+        showToast.error("Insert failed ❌");
+      }
+      return;
+    }
+    const today = getToday();
+    // 🔥 LOG INSERT
     await supabase.from("habit_logs").insert([
       {
-        habit_id: habitId,
+        habit_id: data.id,
         date: today,
-        is_complete: true,
-        completed_time: now,
+        is_complete: false,
       },
     ]);
-  }
 
-
-  // 🔥 GET ALL LOGS
-const { data: logs } = await supabase
-  .from("habit_logs")
-  .select("*")
-  .eq("habit_id", habitId) as { data: HabitLog[] };
-
-// 🔥 CALCULATE STREAK
-const completedDates = logs
-  .filter((l) => l.is_complete)
-  .map((l) => l.date)
-  .sort()
-  .reverse();
-
-// const streak = getSmartStreak({
-//   habit_logs: logs,
-// });
-const streak = getSmartStreak({
-  id: habitId,
-  name: "",
-  scheduled_time: "",
-  habit_logs: logs || [],
-}) || 0;
-
-// 🔥 GET LEVELS
-type Level = {
-  id: string;
-  days: number;
-};
-const { data: levels } = await supabase
-  .from("levels")
-  .select("*")
-  .order("days", { ascending: true }) as { data: Level[] };
-
-if (!levels || levels.length === 0) return;
-
-let newLevel = levels[0];
-
-for (let lvl of levels) {
-  if (streak >= lvl.days) {
-    newLevel = lvl;
-  }
-}
-
-// 🔥 UPDATE HABIT LEVEL
-await supabase
-  .from("habits")
-  .update({ level: newLevel.id })
-  .eq("id", habitId);
-  showToast.success("Completed today ✅");
-  celebrate();
-};
-
-
-
-// const handleDelete = async (id: string) => {
-//   // if (!confirm("Delete this activity?")) return;
-
-//     if (typeof window !== "undefined") {
-//     if (!window.confirm("Delete this activity?")) return;
-//   }
-
-
-//   // ⚡ remove from UI
-//   setActivities((prev) => prev.filter((h) => h.id !== id));
-
-//   // 🧠 if temp id → skip DB
-//   if (id.length < 20) return; // 🔥 temp id check
-
-//   // 🔥 DB delete
-//   const { error } = await supabase
-//     .from("habits")
-//     .delete()
-//     .eq("id", id);
-
-//   if (error) {
-//     console.log("DELETE ERROR:", error);
-//      showToast.error("Delete failed ❌");
-//     loadHabits();
-//   }
-// };
-
-const confirmDelete = async () => {
-  if (!deleteId) return;
-
-  setDeleteLoading(true);
-
-  // UI remove
-  setActivities((prev) => prev.filter((h) => h.id !== deleteId));
-
-  const { error } = await supabase
-    .from("habits")
-    .delete()
-    .eq("id", deleteId);
-
-  if (error) {
-    showToast.error("Delete failed ❌");
-    loadHabits(); // rollback
-  } else {
-    showToast.success("Habit deleted 🗑️");
-  }
-
-  setDeleteLoading(false);
-  setDeleteId(null);
-};
-
-
-const handleAdd = async () => {
-  if (!newName.trim()) return;
-
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-  // if (!user) return;
-
-  if (!user) {
-  setLoading(false); // 🔥 important
-  return;
-}
-
-  const name = newName.trim();
-
-  // 🔥 UI duplicate check
-  const alreadyExists = activities.some(
-    (h) => h.name.toLowerCase() === name.toLowerCase()
-  );
-
-  if (alreadyExists) {
-    showToast.error("Habit already exists ⚠️");
-    return;
-  }
-
-
-
-  setNewName("");
-  setShowAdd(false);
-
-  // 🔥 DB INSERT
-  const { data, error } = await supabase
-    .from("habits")
-    .insert([
+    // ✅ ADD ONLY HERE
+    setActivities((prev) => [
+      ...prev,
       {
-        user_id: user.id,
+        id: data.id,
         name,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        habit_logs: [
+          {
+            id: Math.random().toString(),
+            date: today,
+            is_complete: false,
+          },
+        ],
       },
-    ])
-    .select()
-    .single();
+    ]);
+    showToast.success("Habit added 🔥");
+  };
 
-  // 🔥 DB duplicate safety
-  if (error) {
-    if (error.code === "23505") {
-      showToast.error("Habit already exists ⚠️");
+  // const loadLevels = async () => {
+  //   const { data } = await supabase
+  //     .from("levels")
+  //     .select("*")
+  //     .order("days", { ascending: true });
 
-    } else {
-       showToast.error("Insert failed ❌");
-    }
-    return;
-  }
-const today = getToday();
-  // 🔥 LOG INSERT
-  await supabase.from("habit_logs").insert([
-    {
-      habit_id: data.id,
-      date: today,
-      is_complete: false,
-    },
-  ]);
+  //   setLevels(data || []);
+  // };
 
-  // ✅ ADD ONLY HERE
-  setActivities((prev) => [
-    ...prev,
-    {
-      id: data.id,
-      name,
-      habit_logs: [
-        {
-          id: Math.random().toString(),
-          date: today,
-          is_complete: false,
-        },
-      ],
-    },
-  ]);
-  showToast.success("Habit added 🔥");
-};
+  const loadHabits = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
 
+    if (!user) return;
 
-// const loadLevels = async () => {
-//   const { data } = await supabase
-//     .from("levels")
-//     .select("*")
-//     .order("days", { ascending: true });
-
-//   setLevels(data || []);
-// };
-
-
-
-const loadHabits = async () => {
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData.user;
-
-  if (!user) return;
-
-  const { data } = await supabase
-    .from("habits")
-    .select(`
+    const { data } = await supabase
+      .from("habits")
+      .select(
+        `
       id,
       name,
       scheduled_time,
@@ -861,56 +861,44 @@ const loadHabits = async () => {
         is_complete,
         completed_time
       )
-    `)
-    .eq("user_id", user.id);
+    `,
+      )
+      .eq("user_id", user.id);
 
-  setActivities(data || []);
-   return data || [];
-};
-
-// useEffect(() => {
-//   loadHabits();
-// }, []);
-
-// useEffect(() => {
-//   const load = async () => {
-//     await loadHabits();
-//     setLoading(false);
-//   };
-//   load();
-// }, []);
-useEffect(() => {
-  const load = async () => {
-    const data = await loadHabits();
-    setLoading(false);
-
-    // 🔥 ONLY AFTER DATA
-    if (!data || data.length === 0) {
-      router.push("/habit");
-    }
+    setActivities(data || []);
+    return data || [];
   };
 
-  load();
-},[router]);
+  // useEffect(() => {
+  //   loadHabits();
+  // }, []);
 
-useEffect(() => {
-  if (!loading && activities.length === 0) {
-    router.push("/habit");
-  }
-}, [activities, loading]);
+  // useEffect(() => {
+  //   const load = async () => {
+  //     await loadHabits();
+  //     setLoading(false);
+  //   };
+  //   load();
+  // }, []);
+  useEffect(() => {
+    const load = async () => {
+      const data = await loadHabits();
+      setLoading(false);
 
-useEffect(() => {
-  const shouldCelebrate = searchParams.get("celebrate");
+      // 🔥 ONLY AFTER DATA
+      if (!data || data.length === 0) {
+        router.push("/habit");
+      }
+    };
 
-  if (shouldCelebrate === "true") {
-    setTimeout(() => {
-      celebrate(); // 🎉 BOOM
-    }, 1000);
+    load();
+  }, [router]);
 
-    // URL clean (optional)
-    window.history.replaceState({}, "", "/tracker");
-  }
-}, []);
+  useEffect(() => {
+    if (!loading && activities.length === 0) {
+      router.push("/habit");
+    }
+  }, [activities, loading]);
 
   return (
     <motion.div
@@ -919,8 +907,11 @@ useEffect(() => {
       transition={{ duration: 0.4 }}
       className="min-h-screen bg-background px-4 py-14 sm:py-20"
     >
-      <div className="mx-auto w-full max-w-2xl">
+      <Suspense fallback={null}>
+        <CelebrateHandler />
+      </Suspense>
 
+      <div className="mx-auto w-full max-w-2xl">
         {/* Header */}
         <div className="mb-14 text-center">
           <h1
@@ -964,7 +955,7 @@ useEffect(() => {
             {activities.map((activity: Activity) => (
               <ActivityCard
                 // key={activity.id}
-                  key={activity.id || activity.name}
+                key={activity.id || activity.name}
                 activity={activity}
                 onMark={handleMark}
                 onDelete={handleDelete}
@@ -1016,70 +1007,104 @@ useEffect(() => {
           )}
         </div> */}
       </div>
-<OpenModel
-  open={!!deleteId}
-  onClose={() => setDeleteId(null)}
-    maxWidth="sm"  
-  title={
-    <div className="flex items-center gap-2.5">
-      <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
-        <svg className="w-4 h-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </div>
-      <div>
-        <h2 className="text-base font-semibold">Delete Habit</h2>
-        <p className="text-xs text-muted-foreground">This action is permanent</p>
-      </div>
-    </div>
-  }
-  actions={
-    <div className="flex gap-2">
-      <button
-        onClick={() => setDeleteId(null)}
-        className="flex-1 px-3 py-1.5 rounded-lg bg-secondary/40 border border-border hover:bg-secondary/60 transition-all text-sm font-medium"
-      >
-        Cancel
-      </button>
+      <OpenModel
+        open={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        maxWidth="sm"
+        title={
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
+              <svg
+                className="w-4 h-4 text-destructive"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-base font-semibold">Delete Habit</h2>
+              <p className="text-xs text-muted-foreground">
+                This action is permanent
+              </p>
+            </div>
+          </div>
+        }
+        actions={
+          <div className="flex gap-2">
+            <button
+              onClick={() => setDeleteId(null)}
+              className="flex-1 px-3 py-1.5 rounded-lg bg-secondary/40 border border-border hover:bg-secondary/60 transition-all text-sm font-medium"
+            >
+              Cancel
+            </button>
 
-      <button
-        onClick={confirmDelete}
-        disabled={deleteLoading}
-        className="flex-1 px-3 py-1.5 rounded-lg bg-destructive text-white hover:bg-destructive/80 transition-all text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-1.5"
+            <button
+              onClick={confirmDelete}
+              disabled={deleteLoading}
+              className="flex-1 px-3 py-1.5 rounded-lg bg-destructive text-white hover:bg-destructive/80 transition-all text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              {deleteLoading ? (
+                <>
+                  <svg
+                    className="animate-spin h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Deleting
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </div>
+        }
       >
-        {deleteLoading ? (
-          <>
-            <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        <div className="space-y-3">
+          {/* Warning Message */}
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/15">
+            <svg
+              className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
-            Deleting
-          </>
-        ) : (
-          "Delete"
-        )}
-      </button>
-    </div>
-  }
->
-  <div className="space-y-3">
-    {/* Warning Message */}
-    <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/5 border border-destructive/15">
-      <svg className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
-      <p className="text-xs text-muted-foreground leading-relaxed flex-1">
-        Are you sure? This habit and its progress will be permanently deleted.
-      </p>
-    </div>
+            <p className="text-xs text-muted-foreground leading-relaxed flex-1">
+              Are you sure? This habit and its progress will be permanently
+              deleted.
+            </p>
+          </div>
 
-    {/* Quick Info */}
-    
-  </div>
-</OpenModel>
- 
+          {/* Quick Info */}
+        </div>
+      </OpenModel>
     </motion.div>
-
-    
   );
 }
