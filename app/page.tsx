@@ -107,8 +107,12 @@
 // export default Landing;
 
 
-import Landing from "./Landing/page"
+// import Landing from "./Landing/page"
+
+// export default function Page() {
+//   return <Landing />;
+// }
 
 export default function Page() {
-  return <Landing />;
+  return <h1>🔥 ROOT WORKING 🔥</h1>;
 }
