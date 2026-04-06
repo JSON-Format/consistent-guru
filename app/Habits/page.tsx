@@ -86,7 +86,7 @@ const habits = [
 
 export default function Page() {
   const [index, setIndex] = useState(2);
-  const [selectedHabits, setSelectedHabits] = useState([]);
+const [selectedHabits, setSelectedHabits] = useState<number[]>([]);
   const [direction, setDirection] = useState(0);
 
   const active = habits[index];
@@ -103,13 +103,13 @@ export default function Page() {
 
   const toggleHabit = () => {
     if (selectedHabits.includes(index)) {
-      setSelectedHabits(selectedHabits.filter(i => i !== index));
+      setSelectedHabits(selectedHabits.filter((i: number) => i !== index));
     } else {
       setSelectedHabits([...selectedHabits, index]);
     }
   };
 
-  const variants = {
+const variants: any = {
     enter: (direction: number) => ({
       x: direction > 0 ? 300 : -300,
       opacity: 0,
