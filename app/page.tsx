@@ -1,5 +1,5 @@
 "use client";
-import { createSupabaseBrowserClient } from "../app/lib/client";
+import { createSupabaseBrowserClient } from "./lib/client";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Image from "next/image";
