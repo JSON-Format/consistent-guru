@@ -15,6 +15,7 @@ export default function NavbarWrapper() {
      pathname.startsWith("/forget-password") ||
      pathname.startsWith("/reset-password") 
      || pathname.startsWith("/habit")
+      || pathname.startsWith("/Habits")
       ;
 
   if (hideNavbar) return null;
