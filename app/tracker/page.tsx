@@ -33,6 +33,7 @@ type Activity = {
   id: string;
   name: string;
   scheduled_time?: string;
+   created_at?: string; 
   habit_logs: HabitLog[];
 };
 
@@ -89,6 +90,34 @@ function CelebrateHandler() {
 }
 
 const getToday = () => getLocalDate();
+const isMissedDate = (day: string, activity: Activity) => {
+  const now = new Date();
+  const today = getToday();
+
+  if (day > today) return false;
+
+  if (activity.created_at) {
+    const createdDate = activity.created_at.split("T")[0];
+    if (day < createdDate) return false;
+  }
+
+  if (day === today && activity.scheduled_time) {
+    const [h, m] = activity.scheduled_time.split(":").map(Number);
+
+    const task = new Date();
+    task.setHours(h, m, 0, 0);
+
+    const after = new Date(task.getTime() + 60 * 60 * 1000); // +1hr
+
+    
+    if (now <= after) return false;
+
+    
+    return true;
+  }
+  return day < today;
+};
+
 const getMonthGrid = (date: Date) => {
   const year = date.getFullYear();
   const month = date.getMonth();
@@ -483,21 +512,46 @@ const ActivityCard = ({
             {calendarDays.map((day, index) => {
               if (!day) return <div key={index} />;
 
+              // const log = activity.habit_logs.find((l) => l.date === day);
+
+              // return (
+              //   <div
+              //     key={day}
+              //     title={day}
+              //     className={`h-8 w-full rounded flex items-center justify-center text-[10px] ${
+              //       log?.is_complete
+              //         ? "bg-primary text-primary-foreground"
+              //         : "bg-[hsl(0_0%_100%/0.12)] text-muted-foreground"
+              //     }${day === getToday() ? "ring-1 ring-primary" : ""}`}
+              //   >
+              //     {new Date(day).getDate()}
+              //   </div>
+              // );
+
               const log = activity.habit_logs.find((l) => l.date === day);
 
-              return (
-                <div
-                  key={day}
-                  title={day}
-                  className={`h-8 w-full rounded flex items-center justify-center text-[10px] ${
-                    log?.is_complete
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-[hsl(0_0%_100%/0.12)] text-muted-foreground"
-                  }${day === getToday() ? "ring-1 ring-primary" : ""}`}
-                >
-                  {new Date(day).getDate()}
-                </div>
-              );
+return (
+  <div
+    key={day}
+    title={day}
+    className={`h-8 w-full rounded flex items-center justify-center text-[10px] ${
+      log?.is_complete
+        ? "bg-green-500 text-black"
+        : isMissedDate(day, activity)
+        ? "bg-red-500/20 text-red-400 border border-red-500/30"
+        : "bg-[hsl(0_0%_100%/0.12)] text-muted-foreground"
+    } ${day === getToday() ? "ring-1 ring-primary" : ""}`}
+  >
+    {log?.is_complete ? (
+      "✓"
+    ) : isMissedDate(day, activity) ? (
+      "❌"
+    ) : (
+      new Date(day).getDate()
+    )}
+  </div>
+);
+
             })}
           </motion.div>
         </AnimatePresence>
@@ -855,6 +909,7 @@ export default function TrackerPage() {
       id,
       name,
       scheduled_time,
+      created_at,
       habit_logs (
         id,
         date,

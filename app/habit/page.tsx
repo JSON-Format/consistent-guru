@@ -34,6 +34,26 @@ import OpenModel from "@/app/components/appModel";
 //   return now >= before && now <= after;
 // }
 
+function getTimeMessage(taskTime: string) {
+  const now = new Date();
+
+  const [h, m] = taskTime.split(":").map(Number);
+  const task = new Date();
+  task.setHours(h, m, 0, 0);
+
+  const diffMs = task.getTime() - now.getTime();
+  const diffMin = Math.floor(Math.abs(diffMs) / (1000 * 60));
+
+ if (diffMs > 0) {
+  return `${diffMin} min early ⏳`;
+} else if (diffMs < 0) {
+  return `${diffMin} min late ⚠️`;
+} else {
+  return "Right on time 🚀";
+}
+}
+
+
 function isWithinTimeRange(taskTime: string, range = 1) {
   if (!taskTime) return false;
 
@@ -50,6 +70,7 @@ function isWithinTimeRange(taskTime: string, range = 1) {
   return now >= before && now <= after;
 }
 export default function MeditationUI() {
+  
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
@@ -269,6 +290,8 @@ const today = new Date().toISOString().split("T")[0];
     setIsStarted(false);
   };
 
+   const msg = getTimeMessage(convertTo24());
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#061319] text-white px-4">
       {/* 🔥 CARD */}
@@ -349,13 +372,13 @@ const today = new Date().toISOString().split("T")[0];
         {/* ⏰ TIME PICKER (SINGLE ICON) */}
         <div className="space-y-2 text-left">
           <p className="text-sm text-green-400 flex items-center gap-2">
-            <FiClock /> Schedule Time
+            <FiClock /> Consistent Time
           </p>
 
           <div className="relative flex justify-center">
             {/*==============  */}
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <TimePicker
+              {/* <TimePicker
                 value={timeValue}
                 onChange={(newValue) => setTimeValue(newValue ?? dayjs())}
                 disabled={isLocked}
@@ -363,7 +386,6 @@ const today = new Date().toISOString().split("T")[0];
                 slotProps={{
                   textField: {
                     fullWidth: true,
-
                     InputProps: {
                       sx: {
                         "& .MuiSvgIcon-root": {
@@ -414,11 +436,113 @@ const today = new Date().toISOString().split("T")[0];
                     },
                   },
                 }}
-              />
+              /> */}
+
+              <TimePicker
+  value={timeValue}
+  onChange={(newValue) => setTimeValue(newValue ?? dayjs())}
+  disabled={isLocked}
+  timeSteps={{ minutes: 1 }}
+  slotProps={{
+    textField: {
+      fullWidth: true,
+      InputProps: {
+        sx: {
+          "& .MuiSvgIcon-root": {
+            color: "#4ade80 !important",
+          },
+        },
+      },
+
+      sx: {
+        background: "rgba(255,255,255,0.05)",
+        backdropFilter: "blur(10px)",
+        borderRadius: "14px",
+
+        "& .MuiInputBase-root": {
+          height: "55px",
+          padding: "0 16px",
+        },
+
+        "& .MuiOutlinedInput-root": {
+          "& fieldset": {
+            borderColor: "rgba(74, 222, 128, 0.2)",
+          },
+          "&:hover fieldset": {
+            borderColor: "rgba(74, 222, 128, 0.4)",
+          },
+          "&.Mui-focused fieldset": {
+            borderColor: "#4ade80 !important",
+            boxShadow: "0 0 10px rgba(74, 222, 128, 0.5)",
+          },
+        },
+
+        "& .MuiPickersSectionList-root": {
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          width: "100%",
+          textAlign: "center",
+        },
+
+        "& .MuiPickersSectionList-root span": {
+          fontSize: "18px",
+          letterSpacing: "1px",
+          fontWeight: 500,
+          color: "#fff !important",
+        },
+      },
+    },
+
+    // 🔥 MOBILE ONLY
+    dialog: {
+      sx: {
+        "@media (pointer: coarse)": {
+          "& .MuiClockNumber-root": {
+            color: "#4ade80 !important",
+          },
+
+          "& .Mui-selected": {
+            backgroundColor: "#4ade80 !important",
+            color: "#000 !important",
+          },
+
+          "& .MuiClockPointer-root": {
+            backgroundColor: "#4ade80 !important",
+          },
+
+          "& .MuiClockPointer-thumb": {
+            borderColor: "#4ade80 !important",
+            backgroundColor: "#4ade80 !important",
+          },
+
+          // AM/PM text
+          "& .MuiTypography-root": {
+            color: "#4ade80 !important",
+          },
+        },
+      },
+    },
+  }}
+/>
             </LocalizationProvider>
           </div>
         </div>
+       
 
+{isLocked && (
+  <p
+    className={`text-xs text-center mt-2 ${
+      msg.includes("early")
+        ? "text-yellow-400"
+        : msg.includes("late")
+        ? "text-red-400"
+        : "text-green-400"
+    }`}
+  >
+    {msg}
+  </p>
+)}
         {/* 🚀 BUTTON */}
         <button
           // onClick={handleStart}
@@ -438,7 +562,7 @@ const today = new Date().toISOString().split("T")[0];
           transition-all duration-300
         "
         >
-          {isStarted ? "Complete Task" : "Start Journey"}
+          {isStarted ? "Complete Meditating" : "Start Journey"}
           <FiPlay />
         </button>
         <OpenModel

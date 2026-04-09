@@ -215,102 +215,108 @@ const variants: any = {
         </motion.div>
 
         {/* Circle Container */}
+  
         <div className="relative flex items-center justify-center">
-          
-          {/* Main Glow Effect */}
-          <motion.div
-            className={`absolute rounded-full bg-gradient-to-r ${active.gradient} opacity-40 blur-3xl`}
-            style={{ width: '380px', height: '380px' }}
-            animate={{ scale: [1, 1.1, 1], opacity: [0.4, 0.6, 0.4] }}
-            transition={{ duration: 3, repeat: Infinity }}
+  
+  {/* Premium Dark Glow */}
+  <motion.div
+    className={`absolute rounded-full bg-gradient-to-r ${active.gradient} opacity-10 blur-3xl`}
+    style={{ width: '500px', height: '500px' }}
+    animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.2, 0.1] }}
+    transition={{ duration: 5, repeat: Infinity }}
+  />
+  
+  {/* Outer Elegant Ring */}
+  <motion.div
+    className="absolute rounded-full"
+    style={{ 
+      width: '400px', 
+      height: '400px',
+      background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent, rgba(255,255,255,0.1))',
+      borderRadius: '50%',
+    }}
+    animate={{ rotate: 360 }}
+    transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+  />
+  
+  {/* Main Glass Circle */}
+  <div className="relative w-[320px] h-[320px] md:w-[380px] md:h-[380px] rounded-full bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-md border border-white/10 shadow-2xl overflow-hidden">
+    
+    {/* Inner Glow */}
+    <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${active.gradient} opacity-15`} />
+    
+    {/* Rotating Light */}
+    <motion.div
+      className="absolute inset-0 rounded-full"
+      style={{
+        background: `radial-gradient(circle at 30% 30%, ${active.color}15, transparent 70%)`,
+      }}
+      animate={{ rotate: 360 }}
+      transition={{ duration: 12, repeat: Infinity }}
+    />
+    
+    {/* Image */}
+    <AnimatePresence mode="wait" custom={direction}>
+      <motion.div
+        key={active.image}
+        custom={direction}
+        variants={{
+          enter: (d) => ({ x: d > 0 ? 120 : -120, opacity: 0, scale: 0.6 }),
+          center: { x: 0, opacity: 1, scale: 1, transition: { type: "spring", stiffness: 500, damping: 40 } },
+          exit: (d) => ({ x: d > 0 ? -120 : 120, opacity: 0, scale: 0.6, transition: { duration: 0.2 } }),
+        }}
+        initial="enter"
+        animate="center"
+        exit="exit"
+        className="absolute inset-0"
+      >
+        <div className="relative w-full h-full">
+          <Image
+            src={active.image}
+            alt={active.label}
+            fill
+            className="object-contain p-10 drop-shadow-2xl"
+            priority
           />
-          
-          {/* Outer Rotating Ring */}
-          <motion.div
-            className="absolute rounded-full border border-white/30"
-            style={{ width: '360px', height: '360px' }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          />
-          
-          {/* Middle Ring */}
-          <motion.div
-            className="absolute rounded-full border border-white/20"
-            style={{ width: '340px', height: '340px' }}
-            animate={{ rotate: -360 }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          />
-          
-          {/* Inner Ring with Gradient */}
-          <motion.div
-            className={`absolute rounded-full bg-gradient-to-r ${active.gradient} opacity-20 blur-xl`}
-            style={{ width: '320px', height: '320px' }}
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-          
-          {/* Main Circle */}
-          <div className="relative w-[300px] h-[300px] md:w-[340px] md:h-[340px] rounded-full bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden">
-            
-            {/* Animated Gradient Overlay */}
-            <motion.div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background: `linear-gradient(90deg, ${active.color}, transparent, ${active.color})`,
-                backgroundSize: "200% 100%",
-              }}
-              animate={{ backgroundPosition: ["0% 0%", "100% 0%", "0% 0%"] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            />
-            
-            {/* Image Container with Animation */}
-            <AnimatePresence mode="wait" custom={direction}>
-              <motion.div
-                key={active.image}
-                custom={direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="absolute inset-0"
-              >
-                <div className="relative w-full h-full">
-                  <Image
-                    src={active.image}
-                    alt={active.label}
-                    fill
-                    className="object-contain p-8 md:p-10"
-                    sizes="(max-width: 768px) 300px, 340px"
-                    priority
-                  />
-                </div>
-              </motion.div>
-            </AnimatePresence>
-            
-            {/* Shimmer Effect */}
-            <motion.div
-              className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/10 to-transparent"
-              animate={{ x: ["-100%", "100%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
-            
-            {/* Selection Badge */}
-            {selectedHabits.includes(index) && (
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center shadow-lg"
-              >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-              </motion.div>
-            )}
-            
-          </div>
-          
         </div>
-        
+      </motion.div>
+    </AnimatePresence>
+    
+    {/* Subtle Shimmer */}
+    <motion.div
+      className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/5 to-transparent"
+      animate={{ x: ["-100%", "100%"], y: ["-100%", "100%"] }}
+      transition={{ duration: 4, repeat: Infinity, repeatDelay: 1.5 }}
+    />
+    
+    {/* Border Accent */}
+    <div className="absolute inset-0 rounded-full border border-white/5 pointer-events-none" />
+    
+  </div>
+  
+  {/* Subtle Orbiting Dots */}
+  <motion.div
+    className="absolute rounded-full"
+    style={{ width: '430px', height: '430px' }}
+    animate={{ rotate: -360 }}
+    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+  >
+    {[...Array(12)].map((_, i) => (
+      <div
+        key={i}
+        className="absolute w-1 h-1 rounded-full bg-white/20"
+        style={{
+          top: '50%',
+          left: '50%',
+          transform: `rotate(${i * 30}deg) translateX(215px)`,
+        }}
+      />
+    ))}
+  </motion.div>
+  
+  {/* Outer Thin Rings */}
+  <div className="absolute rounded-full border-4 border-white/5" style={{ width: '460px', height: '460px' }} />
+</div>
         {/* Content Section */}
         <div className="text-center mt-12 space-y-4">
           {/* Title with Selection */}

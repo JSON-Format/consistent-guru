@@ -4,6 +4,7 @@
 import { useEffect } from "react";
 import { createSupabaseBrowserClient } from "../../lib/client";
 import { useRouter } from "next/navigation";
+import AppLoader from "@/app/components/appLoader";
 
 export default function CallbackPage() {
   const supabase = createSupabaseBrowserClient();
@@ -167,78 +168,80 @@ if (!isCompleted && isInTime) {
   }, []);
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background">
-      {/* Animated background particles with your color scheme */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-primary/5 blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 h-96 w-96 rounded-full bg-primary/10 blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl animate-pulse delay-700"></div>
-      </div>
+    // <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background">
+    //   {/* Animated background particles with your color scheme */}
+    //   <div className="absolute inset-0">
+    //     <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-primary/5 blur-3xl animate-pulse"></div>
+    //     <div className="absolute bottom-20 right-10 h-96 w-96 rounded-full bg-primary/10 blur-3xl animate-pulse delay-1000"></div>
+    //     <div className="absolute left-1/2 top-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-3xl animate-pulse delay-700"></div>
+    //   </div>
 
-      {/* Main container with card styling */}
-      <div className="relative flex flex-col items-center gap-8 rounded-2xl border border-border bg-card/50 p-12 shadow-2xl backdrop-blur-sm">
-        {/* 🔥 Enhanced Logo with glow effects */}
-        <div className="relative group">
-          {/* Glow layers using your primary color */}
-          <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl animate-ping"></div>
-          <div className="absolute inset-0 rounded-full bg-primary/30 blur-xl animate-pulse"></div>
+    //   {/* Main container with card styling */}
+    //   <div className="relative flex flex-col items-center gap-8 rounded-2xl border border-border bg-card/50 p-12 shadow-2xl backdrop-blur-sm">
+    //     {/* 🔥 Enhanced Logo with glow effects */}
+    //     <div className="relative group">
+    //       {/* Glow layers using your primary color */}
+    //       <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl animate-ping"></div>
+    //       <div className="absolute inset-0 rounded-full bg-primary/30 blur-xl animate-pulse"></div>
 
-          {/* Logo container with floating animation */}
-          <div className="relative animate-float">
-            <img
-              src="/guru-meditate.png"
-              alt="Guru"
-              className="relative z-10 h-24 w-24 object-contain drop-shadow-2xl transition-transform duration-300 group-hover:scale-110"
-            />
+    //       {/* Logo container with floating animation */}
+    //       <div className="relative animate-float">
+    //         <img
+    //           src="/guru-meditate.png"
+    //           alt="Guru"
+    //           className="relative z-10 h-24 w-24 object-contain drop-shadow-2xl transition-transform duration-300 group-hover:scale-110"
+    //         />
 
-            {/* Orbiting rings with primary color */}
-            <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-spin-slow"></div>
-            <div className="absolute inset-2 rounded-full border border-primary/10 animate-spin-slower"></div>
-          </div>
-        </div>
+    //         {/* Orbiting rings with primary color */}
+    //         <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-spin-slow"></div>
+    //         <div className="absolute inset-2 rounded-full border border-primary/10 animate-spin-slower"></div>
+    //       </div>
+    //     </div>
 
-        {/* 🔄 Enhanced Spinner with multiple rings */}
-        <div className="relative flex items-center justify-center">
-          {/* Outer rings */}
-          <div className="absolute h-16 w-16 rounded-full border-4 border-primary/10 animate-ping"></div>
-          <div className="absolute h-14 w-14 rounded-full border-4 border-primary/20 animate-pulse"></div>
+    //     {/* 🔄 Enhanced Spinner with multiple rings */}
+    //     <div className="relative flex items-center justify-center">
+    //       {/* Outer rings */}
+    //       <div className="absolute h-16 w-16 rounded-full border-4 border-primary/10 animate-ping"></div>
+    //       <div className="absolute h-14 w-14 rounded-full border-4 border-primary/20 animate-pulse"></div>
 
-          {/* Main spinner */}
-          <div className="relative">
-            <div className="h-16 w-16 rounded-full border-4 border-primary/10"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-primary animate-spin border-t-transparent border-r-transparent"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-primary/50 animate-spin-slow border-b-transparent border-l-transparent"></div>
-          </div>
+    //       {/* Main spinner */}
+    //       <div className="relative">
+    //         <div className="h-16 w-16 rounded-full border-4 border-primary/10"></div>
+    //         <div className="absolute inset-0 rounded-full border-4 border-primary animate-spin border-t-transparent border-r-transparent"></div>
+    //         <div className="absolute inset-0 rounded-full border-4 border-primary/50 animate-spin-slow border-b-transparent border-l-transparent"></div>
+    //       </div>
 
-          {/* Inner dot */}
-          <div className="absolute h-3 w-3 animate-pulse rounded-full bg-primary"></div>
-        </div>
+    //       {/* Inner dot */}
+    //       <div className="absolute h-3 w-3 animate-pulse rounded-full bg-primary"></div>
+    //     </div>
 
-        {/* ✨ Enhanced Text with animations */}
-        <div className="space-y-2 text-center">
-          <p className="font-display text-lg font-medium text-primary animate-gradient">
-            Authenticating...
-          </p>
+    //     {/* ✨ Enhanced Text with animations */}
+    //     <div className="space-y-2 text-center">
+    //       <p className="font-display text-lg font-medium text-primary animate-gradient">
+    //         Authenticating...
+    //       </p>
 
-          {/* Loading dots with primary color */}
-          <div className="flex justify-center gap-2">
-            <div className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]"></div>
-            <div className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]"></div>
-            <div className="h-2 w-2 animate-bounce rounded-full bg-primary/60"></div>
-          </div>
+    //       {/* Loading dots with primary color */}
+    //       <div className="flex justify-center gap-2">
+    //         <div className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]"></div>
+    //         <div className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]"></div>
+    //         <div className="h-2 w-2 animate-bounce rounded-full bg-primary/60"></div>
+    //       </div>
 
-          {/* Subtle status message using muted foreground */}
-          <p className="mt-4 animate-pulse font-body text-xs text-muted-foreground">
-            Securing your session
-          </p>
-        </div>
+    //       {/* Subtle status message using muted foreground */}
+    //       <p className="mt-4 animate-pulse font-body text-xs text-muted-foreground">
+    //         Securing your session
+    //       </p>
+    //     </div>
 
-        {/* Progress bar alternative design */}
-        <div className="mt-2 h-1 w-48 overflow-hidden rounded-full bg-secondary">
-          <div className="h-full w-2/3 animate-progress rounded-full bg-primary"></div>
-        </div>
-      </div>
-    </div>
+    //     {/* Progress bar alternative design */}
+    //     <div className="mt-2 h-1 w-48 overflow-hidden rounded-full bg-secondary">
+    //       <div className="h-full w-2/3 animate-progress rounded-full bg-primary"></div>
+    //     </div>
+    //   </div>
+    // </div>
+<AppLoader />
+    
   );
 }
 
