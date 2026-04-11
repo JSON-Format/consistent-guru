@@ -14,6 +14,8 @@ import OpenModel from "@/app/components/appModel";
 import { getSmartStreak } from "@/app/lib/utils";
 import { FiCheck } from "react-icons/fi";
 
+
+
 function getTimeMessage(taskTime: string) {
   const now = new Date();
 
@@ -71,6 +73,7 @@ export default function MeditationUI() {
     "inhale",
   );
 
+
  const totalDays = habitData?.habit_logs?.filter(
   (l: { is_complete: boolean }) => l.is_complete
 ).length || 0;
@@ -95,7 +98,6 @@ const consistency = totalLogs > 0
         .select(`
   id,
   scheduled_time,
-    is_locked,
   habit_logs (
     id,
     date,
@@ -109,9 +111,12 @@ const consistency = totalLogs > 0
 
       if (!habit) return;
       setHabitData(habit);
-      if (habit?.is_locked) {
-        setIsLocked(true); // 🔥 refresh apramum lock
-      }
+      // if (habit?.is_locked) {
+      //   setIsLocked(true); 
+      // }
+      if ((habit as any)?.is_locked) {
+  setIsLocked(true);
+}
       // 🔥 set correct time from DB
       const t = habit.scheduled_time
         ? dayjs(habit.scheduled_time, "HH:mm")
