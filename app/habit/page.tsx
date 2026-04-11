@@ -117,6 +117,7 @@ const consistency = totalLogs > 0
       if ((habit as any)?.is_locked) {
   setIsLocked(true);
 }
+
       // 🔥 set correct time from DB
       const t = habit.scheduled_time
         ? dayjs(habit.scheduled_time, "HH:mm")
