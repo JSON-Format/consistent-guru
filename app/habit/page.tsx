@@ -117,7 +117,6 @@ const today = new Date().toISOString().split("T")[0];
         .eq("habit_id", habit.id)
         .eq("date", today)
         .maybeSingle();
-
       // 🔥 FIX: if no log → create one
       if (!log) {
         const { data: newLog } = await supabase
