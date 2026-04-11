@@ -11,28 +11,8 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import OpenModel from "@/app/components/appModel";
-
-
-// function isWithinTimeRange(taskTime: string, range = 1) {
-//   if (!taskTime) return false;
-
-//   const now = new Date();
-
-//   const [hours, minutes] = taskTime.split(":").map(Number);
-
-//   const task = new Date();
-//   task.setHours(hours, minutes, 0, 0);
-
-//   // 🔥 PAST TIME → TOMORROW
-//   if (task < now) {
-//     task.setDate(task.getDate() + 1);
-//   }
-
-//   const before = new Date(task.getTime() - range * 60 * 60 * 1000);
-//   const after = new Date(task.getTime() + range * 60 * 60 * 1000);
-
-//   return now >= before && now <= after;
-// }
+import { getSmartStreak } from "@/app/lib/utils";
+import { FiCheck } from "react-icons/fi";
 
 function getTimeMessage(taskTime: string) {
   const now = new Date();
@@ -42,16 +22,23 @@ function getTimeMessage(taskTime: string) {
   task.setHours(h, m, 0, 0);
 
   const diffMs = task.getTime() - now.getTime();
-  const diffMin = Math.floor(Math.abs(diffMs) / (1000 * 60));
+  const diffMin = Math.floor(diffMs / (1000 * 60));
 
- if (diffMs > 0) {
-  return `${diffMin} min early ⏳`;
-} else if (diffMs < 0) {
-  return `${diffMin} min late ⚠️`;
-} else {
-  return "Right on time 🚀";
+  // ✅ ON TIME (±1 min range)
+  if (Math.abs(diffMin) <= 1) {
+    return "On time ⏳";
+  }
+
+  // ✅ EARLY
+  if (diffMin > 1) {
+    return `${diffMin} min early ⏳`;
+  }
+
+  // ✅ LATE
+  return `${Math.abs(diffMin)} min late ⏳`;
 }
-}
+
+
 
 
 function isWithinTimeRange(taskTime: string, range = 1) {
@@ -70,7 +57,8 @@ function isWithinTimeRange(taskTime: string, range = 1) {
   return now >= before && now <= after;
 }
 export default function MeditationUI() {
-  
+  const [loading, setLoading] = useState(false);
+  const [habitData, setHabitData] = useState<any>(null);
   const supabase = createSupabaseBrowserClient();
   const router = useRouter();
   const [isLocked, setIsLocked] = useState(false);
@@ -82,6 +70,18 @@ export default function MeditationUI() {
   const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">(
     "inhale",
   );
+
+  const totalDays = habitData?.habit_logs?.filter(l => l.is_complete).length || 0;
+
+const streak = habitData ? getSmartStreak(habitData) : 0;
+
+const totalLogs = habitData?.habit_logs?.length || 0;
+
+const consistency = totalLogs > 0
+  ? Math.round((totalDays / totalLogs) * 100)
+  : 0;
+
+
   useEffect(() => {
     const checkAccess = async () => {
       const { data: userData } = await supabase.auth.getUser();
@@ -90,12 +90,22 @@ export default function MeditationUI() {
 
       const { data: habit } = await supabase
         .from("habits")
-        .select("*")
+        .select(`
+  id,
+  scheduled_time,
+  habit_logs (
+    id,
+    date,
+    is_complete,
+    completed_time
+  )
+`)
         .eq("user_id", user.id)
         .eq("name", "Meditating")
         .maybeSingle();
 
       if (!habit) return;
+      setHabitData(habit);
       if (habit?.is_locked) {
         setIsLocked(true); // 🔥 refresh apramum lock
       }
@@ -371,73 +381,16 @@ const today = new Date().toISOString().split("T")[0];
 
         {/* ⏰ TIME PICKER (SINGLE ICON) */}
         <div className="space-y-2 text-left">
+          {!isStarted && (
           <p className="text-sm text-green-400 flex items-center gap-2">
-            <FiClock /> Consistent Time
+            <FiClock /> Shedule Your Meditating Time
           </p>
+          )}
 
-          <div className="relative flex justify-center">
+          <div className="relative flex-1 justify-center">
             {/*==============  */}
+            {!isStarted ? (
             <LocalizationProvider dateAdapter={AdapterDayjs}>
-              {/* <TimePicker
-                value={timeValue}
-                onChange={(newValue) => setTimeValue(newValue ?? dayjs())}
-                disabled={isLocked}
-                timeSteps={{ minutes: 1 }}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    InputProps: {
-                      sx: {
-                        "& .MuiSvgIcon-root": {
-                          color: "#4ade80 !important",
-                        },
-                      },
-                    },
-
-                    sx: {
-                      background: "rgba(255,255,255,0.05)",
-                      backdropFilter: "blur(10px)",
-                      borderRadius: "14px",
-
-                      "& .MuiInputBase-root": {
-                        height: "55px",
-                        padding: "0 16px",
-                      },
-
-                      "& .MuiOutlinedInput-root": {
-                        "& fieldset": {
-                          borderColor: "rgba(74, 222, 128, 0.2)",
-                        },
-
-                        "&:hover fieldset": {
-                          borderColor: "rgba(74, 222, 128, 0.4)",
-                        },
-
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#4ade80 !important",
-                          boxShadow: "0 0 10px rgba(74, 222, 128, 0.5)",
-                        },
-                      },
-
-                      "& .MuiPickersSectionList-root": {
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        width: "100%",
-                        textAlign: "center",
-                      },
-
-                      "& .MuiPickersSectionList-root span": {
-                        fontSize: "18px",
-                        letterSpacing: "1px",
-                        fontWeight: 500,
-                        color: "#fff !important",
-                      },
-                    },
-                  },
-                }}
-              /> */}
-
               <TimePicker
   value={timeValue}
   onChange={(newValue) => setTimeValue(newValue ?? dayjs())}
@@ -526,45 +479,89 @@ const today = new Date().toISOString().split("T")[0];
   }}
 />
             </LocalizationProvider>
+            ):(
+                <div className="space-y-6">
+
+    {/* 🔹 STATS */}
+    <div className="grid grid-cols-3 gap-4">
+      <div className="bg-white/5 border border-green-400/20 rounded-xl py-4 text-center">
+        <p className="text-2xl font-bold text-green-400">{totalDays}</p>
+        <p className="text-xs text-gray-400">Total days</p>
+      </div>
+
+      <div className="bg-white/5 border border-green-400/20 rounded-xl py-4 text-center">
+        <p className="text-2xl font-bold text-green-400">{streak}</p>
+        <p className="text-xs text-gray-400">Streak</p>
+      </div>
+
+      <div className="bg-white/5 border border-green-400/20 rounded-xl py-4 text-center">
+        <p className="text-2xl font-bold text-green-400">{consistency}%</p>
+        <p className="text-xs text-gray-400">Consistency</p>
+      </div>
+    </div>
+
+    {/* 🔹 TASK TIME CARD */}
+    <div className="bg-green-500/10 border border-green-400/30 rounded-2xl p-5 flex items-center justify-between">
+
+      <div>
+        <p className="text-xs text-gray-400">Your Consistent Time </p>
+        <p className="text-xl font-semibold text-white">
+          {timeValue ? timeValue.format("hh:mm A") : "--:--"}
+        </p>
+      </div>
+
+      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+        msg.includes("early")
+          ? "bg-yellow-400/20 text-yellow-400"
+          : msg.includes("late")
+          ? "bg-red-400/20 text-red-400"
+          : "bg-green-400/20 text-green-400"
+      }`}>
+        {msg}
+      </div>
+
+    </div>
+
+  </div>
+
+            )}
           </div>
         </div>
        
-
-{isLocked && (
-  <p
-    className={`text-xs text-center mt-2 ${
-      msg.includes("early")
-        ? "text-yellow-400"
-        : msg.includes("late")
-        ? "text-red-400"
-        : "text-green-400"
-    }`}
-  >
-    {msg}
-  </p>
-)}
         {/* 🚀 BUTTON */}
-        <button
-          // onClick={handleStart}
-          onClick={() => {
-            if (!isStarted) {
-              setOpen(true); // 🔥 modal open
-            } else {
-              handleStart(); // complete
-            }
-          }}
-          className="
-          w-full py-4 rounded-full font-medium flex items-center justify-center gap-2
-          bg-green-400 text-black text-lg
-          shadow-[0_0_25px_rgba(34,197,94,0.4)]
-          hover:shadow-[0_0_60px_rgba(34,197,94,0.8)]
-          hover:scale-105
-          transition-all duration-300
-        "
-        >
-          {isStarted ? "Complete Meditating" : "Start Journey"}
-          <FiPlay />
-        </button>
+      <button
+  disabled={loading}
+  onClick={async () => {
+    if (loading) return;
+
+    setLoading(true);
+
+    if (!isStarted) {
+      setOpen(true);
+      setLoading(false);
+    } else {
+      await handleStart();
+      setLoading(false);
+    }
+  }}
+  className="
+  w-full py-4 rounded-full font-medium flex items-center justify-center gap-2
+  bg-green-400 text-black text-lg
+  shadow-[0_0_25px_rgba(34,197,94,0.4)]
+  hover:shadow-[0_0_60px_rgba(34,197,94,0.8)]
+  hover:scale-105
+  active:scale-95 active:shadow-none
+  disabled:opacity-50 disabled:cursor-not-allowed
+  transition-all duration-300
+"
+>
+  {loading 
+    ? "Processing..." 
+    : isStarted 
+    ? "Complete Meditating" 
+    : "Start Journey"}
+  {isStarted ? <FiCheck /> : <FiPlay />}
+</button>
         <OpenModel
           open={open}
           onClose={() => setOpen(false)}

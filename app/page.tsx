@@ -7,25 +7,84 @@ import Image from "next/image";
 const Landing = () => {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
-//   const handleGuruClick = async () => {
 
-//   const { data } = await supabase.auth.getUser();
+// const handleGuruClick = async () => {
+//   const { data } = await supabase.auth.getSession();
+//   const user = data.session?.user;
 
-//   if (data.user) {
+//   if (user) {
 //     router.push("/callback"); 
 //   } else {
 //     router.push("/login");
 //   }
-
 // };
+
 const handleGuruClick = async () => {
   const { data } = await supabase.auth.getSession();
   const user = data.session?.user;
 
-  if (user) {
-    router.push("/callback"); 
-  } else {
+  if (!user) {
     router.push("/login");
+    return;
+  }
+
+  // 🔥 get habits
+  const { data: habits } = await supabase
+    .from("habits")
+    .select("id, scheduled_time")
+    .eq("user_id", user.id);
+
+  if (!habits || habits.length === 0) {
+    router.push("/habit");
+    return;
+  }
+
+  const today = new Date().toISOString().split("T")[0];
+
+  let hasActiveHabit = false;
+
+  function isWithinTimeRange(taskTime: string, range = 1) {
+    if (!taskTime) return false;
+
+    const now = new Date();
+    const [hours, minutes] = taskTime.split(":").map(Number);
+
+    const task = new Date();
+    task.setHours(hours, minutes, 0, 0);
+
+    const before = new Date(task.getTime() - range * 60 * 60 * 1000);
+    const after = new Date(task.getTime() + range * 60 * 60 * 1000);
+
+    return now >= before && now <= after;
+  }
+
+  for (const h of habits) {
+    if (!h.scheduled_time) continue;
+
+    const { data: log } = await supabase
+      .from("habit_logs")
+      .select("*")
+      .eq("habit_id", h.id)
+      .eq("date", today)
+      .maybeSingle();
+
+    // ✅ already completed → tracker
+    if (log?.is_complete) {
+      router.push("/tracker");
+      return;
+    }
+
+    // ✅ time match → habit page
+    if (isWithinTimeRange(h.scheduled_time)) {
+      hasActiveHabit = true;
+      break;
+    }
+  }
+
+  if (hasActiveHabit) {
+    router.push("/habit");
+  } else {
+    router.push("/tracker");
   }
 };
 
