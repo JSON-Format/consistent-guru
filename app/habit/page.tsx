@@ -95,6 +95,7 @@ const consistency = totalLogs > 0
         .select(`
   id,
   scheduled_time,
+    is_locked,
   habit_logs (
     id,
     date,
