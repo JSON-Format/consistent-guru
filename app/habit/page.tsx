@@ -71,7 +71,9 @@ export default function MeditationUI() {
     "inhale",
   );
 
-  const totalDays = habitData?.habit_logs?.filter(l => l.is_complete).length || 0;
+ const totalDays = habitData?.habit_logs?.filter(
+  (l: { is_complete: boolean }) => l.is_complete
+).length || 0;
 
 const streak = habitData ? getSmartStreak(habitData) : 0;
 
